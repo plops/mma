@@ -1,64 +1,5 @@
 (in-package :acquisitor)
 
-(defun plan-stack (&key (slices 1) lcos-seq (start-pos 0) (dz 1)
-		   (frame-period (/ 60)) (start-time 0d0)
-		   (stage-settle-duration 20) (lcos-lag 0))
-  (let ((res nil)
-        (pos start-pos)
-        (time (+ start-time frame-period))
-	(image-index 0))
-    (push (list :type :capture
-                :start 0
-                :end 15
-                :content '(10 :dark)
-		:image-index image-index)
-          res)
-    (loop for k below slices do
-         (let ((cam nil))
-          (push (list :type :lcos-display
-                      :pos pos
-                      :lcos-seq
-                      (let ((lcos nil)
-			    (phase 0))
-                        (loop for e in lcos-seq do
-			     (let ((ee (list (+ (* 1000 k) ) e)))
-			      ;; lcos displays each frame twice
-			      (push (list :start time 
-					  :end (+ time 15)
-					  :content (list (+ (* 1000 k) ) e)) 
-				    lcos)
-			      (incf time frame-period)
-			      (push (list :start time
-					  :end (+ time 15)
-					  :content ee)
-				    lcos)
-			      ;; one of the frames is captured by the camera
-			      (push (list :type :capture
-					  :start time
-					  :end (+ time 15)
-					  :content e
-					  :slice k
-					  :image-index (incf image-index))
-				    cam)
-			      ;; for this frame the MMA was white
-			      (push (list :type :mma
-					  :start time
-					  :end (+ time 15)
-					  :content e)
-				    cam)
-			      (incf time frame-period)))
-                        (reverse lcos)))
-                res)
-          (loop for e in (reverse cam) do
-               (push e res))
-          (incf pos dz)
-          (unless (= k (- slices 1))
-           (push (list :type :stage-move
-                       :start (+ time frame-period) ;; move stage in one of the dark images
-                       :end (+ time frame-period stage-settle-duration (- lcos-lag))
-                       :pos pos)
-                 res))))
-    (reverse res)))
 
 ;; lcos is always a list of things to be displayed, it can be
 ;; '(:dark), '(:bright) or a list of primitives: '((:grating-disk 120
@@ -92,6 +33,49 @@
 		:mma '((:bright))
 		:accum-group 3)
  :lcos)
+
+(defparameter *stack-state* nil)
+
+(defmacro ss (sym)
+  "Access an entry in the stack state"
+  `(getf acquisitor::*stack-state* ,sym))
+
+
+
+(defun encode-phase-hash (slice phase)
+  "Encode phase and slice into a hash key."
+  (unless (< (ss :phases) 100)
+    (break "Phases can't be encoded into a number with two digits."))
+  (+ (* 100 slice)
+     phase))
+#+nil
+(encode-phase-hash 12 3)
+
+(defun decode-phase-hash (key)
+  "Retrun slice and phase of a hash key."
+  (values (floor key 100)
+	  (mod key 100)))
+#+nil
+(decode-phase-hash 312)
+
+(defun put-phases-into-hash ()
+  (let ((tbl (make-hash-table)))
+   (mapcar #'(lambda (x)
+	       (setf (gethash (encode-phase-hash (getf x :slice) 
+						 (getf x :content))
+			      tbl)
+		     (getf x :image-index)))
+	   (remove-if #'(lambda (x) (eq :dark (getf x :content)))
+		      (get-capture-sequence)))
+   tbl))
+#+nil
+(defparameter *qee*
+ (get-dark-indices))
+
+#+nil
+(defparameter *hsh* (put-phases-into-hash))
+
+
 
 (defun plan-full-grating-stack (&key (slices 10) (phases 3) (repetition 2) (start-pos 0) (dz 1)
 				(frame-period (/ 60))
@@ -178,14 +162,9 @@
           (remove-if-not #'(lambda (x) (eq :stage-move (getf x :type)))
                          ls)))
 
-(defparameter *stack-state* nil)
 
 
-(defmacro ss (sym)
-  "Access an entry in the stack state"
-  `(getf acquisitor::*stack-state* ,sym))
-
-(defun prepare-grating-stack-acquisition (&key (slices 10) (dz 1) (repetition 1) (phases 3))
+(defun prepare-grating-stack-acquisition (&key (slices 10) (dz 1) (repetition 1) (phases 3) (width 3))
   (when (ss :wait-move-thread) 
     (close-move-thread))
   (let* ((start-pos (focus:get-position))
@@ -194,7 +173,8 @@
 	       :phases phases
 	       :repetition repetition
 	       :frame-period (/ 1000 60)
-	       :start-pos start-pos :dz dz))
+	       :start-pos start-pos :dz dz
+	       :grating-width width))
 	 (moves (extract-moves seq)))
     (setf *stack-state* nil)
      (setf (ss :seq) seq
@@ -295,7 +275,7 @@
 (defun get-capture-sequence ()
  (remove-if-not #'(lambda (x) (eq :capture (getf x :type))) (ss :seq)))
 
-(defun acquire-stack (&key (show-on-screen nil) (slices 10) (dz 1) (lcos-seq '(:dark 0 1 2)))
+(defun acquire-stack (&key (show-on-screen nil) (slices 10) (dz 1) (repetition 1))
   (unless show-on-screen 
     (setf run-gui::*do-capture* nil
 	  run-gui::*do-display-queue* nil)
@@ -305,7 +285,9 @@
     (clara::prepare-acquisition)
     (setf run-gui::*line* (sb-concurrency:make-queue :name 'picture-fifo)))
 
-  (prepare-stack-acquisition :slices slices :dz dz :lcos-seq lcos-seq)
+  (prepare-grating-stack-acquisition :slices slices :dz dz 
+				     :repetition repetition
+				     :phases 3 :width 3)
   (dolist (pic (get-lcos-picture-sequence))
     (dolist (pic-el pic)
       (case (first pic-el)
@@ -344,6 +326,8 @@
 
   (setf run-gui::*do-display-queue* t))
 
+#+nil
+(acquire-stack :slices 30 :repetition 2)
 
 #+nil
 (dolist (e (get-lcos-sequence))     
@@ -375,37 +359,6 @@
 (vol::write-pgm-transposed "/dev/shm/o.pgm"
 			   (vol:normalize-2-sf/ub8 (accumulate-dark-images)))
 
-(defun encode-phase-hash (slice phase)
-  "Encode phase and slice into a hash key."
-  (assert (< (ss :phases) 100))
-  (+ (* 100 slice)
-     phase))
-#+nil
-(encode-phase-hash 12 3)
-
-(defun decode-phase-hash (key)
-  "Retrun slice and phase of a hash key."
-  (values (floor key 100)
-	  (mod key 100)))
-#+nil
-(decode-phase-hash 312)
-
-(defun put-phases-into-hash ()
-  (let ((tbl (make-hash-table)))
-   (mapcar #'(lambda (x)
-	       (setf (gethash (encode-phase-hash (getf x :slice) 
-						 (getf x :content))
-			      tbl)
-		     (getf x :image-index)))
-	   (remove-if #'(lambda (x) (eq :dark (getf x :content)))
-		      (get-capture-sequence)))
-   tbl))
-#+nil
-(defparameter *qee*
- (get-dark-indices))
-
-#+nil
-(defparameter *hsh* (put-phases-into-hash))
 
 (defun reconstruct-from-phase-images (&key (algorithm :max-min))
   (declare (type (member :max-min :sqrt) algorithm))
