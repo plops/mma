@@ -76,7 +76,7 @@
 
 (defun check-exposure (c)
   (unless (eq :exposure (first c))
-    (break "Object not of type :exposure ~a." (first c))))
+    (break "Type error: Object not of type :exposure ~a." (first c))))
 
 (defun get-exposure (place indicator)
   (declare (type (member :lcos :mma :accum-group) indicator))
@@ -96,7 +96,7 @@
 (defun plan-full-grating-stack (&key (slices 10) (phases 3) (repetition 2) (start-pos 0) (dz 1)
 				(frame-period (/ 60))
 				(start-time 0d0) (stage-settle-duration 20)
-				(lcos-lag 0))
+				(lcos-lag 0) (grating-width 3))
   (let ((res nil)
         (pos start-pos)
         (time (+ start-time frame-period))
@@ -118,7 +118,8 @@
 					 (dotimes (j repetition)
 					   (dotimes (phase phases)
 					     (push (make-exposure
-						    :lcos `((:grating-disk 425 325 300 ,phases ,phase))
+						    :lcos `((:grating-disk 425 325 300 
+									   ,phases ,phase ,grating-width))
 						    :mma `((:bright))
 						    :accum-group (encode-phase-hash k phase))
 						   rlcos)))
@@ -184,21 +185,23 @@
   "Access an entry in the stack state"
   `(getf acquisitor::*stack-state* ,sym))
 
-(defun prepare-stack-acquisition (&key (slices 10) (dz 1) (lcos-seq '(:dark 0 1 2)))
+(defun prepare-grating-stack-acquisition (&key (slices 10) (dz 1) (repetition 1) (phases 3))
   (when (ss :wait-move-thread) 
     (close-move-thread))
   (let* ((start-pos (focus:get-position))
-	 (seq (plan-stack :slices slices 
-			  :lcos-seq lcos-seq
-			  :frame-period (/ 1000 60)
-			  :start-pos start-pos :dz dz))
+	 (seq (plan-full-grating-stack
+	       :slices slices
+	       :phases phases
+	       :repetition repetition
+	       :frame-period (/ 1000 60)
+	       :start-pos start-pos :dz dz))
 	 (moves (extract-moves seq)))
     (setf *stack-state* nil)
      (setf (ss :seq) seq
 	   (ss :moves) moves ;; planned moves
 	   (ss :real-moves) nil ;; times when actual stage movements occured
 	   (ss :start) 0
-	   (ss :phases) (1- (length lcos-seq))
+	   (ss :phases) phases
 	   (ss :slices) slices
 	   (ss :do-wait-move) t
 	   (ss :wait-move-thread) nil
@@ -208,7 +211,7 @@
 	   (ss :image-times) nil)))
 
 
-(prepare-stack-acquisition)
+(prepare-grating-stack-acquisition :repetition 2)
 
 
 (defun close-move-thread ()
@@ -276,20 +279,23 @@
 	  (sb-thread:make-thread #'(lambda () (move-stage-fun))
 				 :name "stage-mover")))
 
-(defun get-lcos-sequence ()
+(defun get-lcos-picture-sequence ()
  (let ((res nil))
-   (dolist (es (mapcar #'(lambda (x) (mapcar #'(lambda (y) (getf y :content))
-					(getf x :lcos-seq)))
-		       (remove-if-not #'(lambda (x) (eq :lcos-display (getf x :type))) (ss :seq))))
- 
-     (dolist (e es)
-       (push e res)))
-   (reverse res)))
+  (dolist (images-at-z (mapcar 
+			(lambda (x) (mapcar (lambda (y) (getf y :content)) (getf x :lcos-seq)))
+			(remove-if-not (lambda (x) (eq :display (getf x :type))) (ss :seq))))
+    (dolist (pic images-at-z) 
+      (push pic res)))
+  (reverse res)))
+
+#+nil
+(get-lcos-picture-sequence)
+
 
 (defun get-capture-sequence ()
  (remove-if-not #'(lambda (x) (eq :capture (getf x :type))) (ss :seq)))
 
-(defun acquire-stack (&key (show-on-screen nil) (slices 10) (dz 1) (width 4) (lcos-seq '(:dark 0 1 2)))
+(defun acquire-stack (&key (show-on-screen nil) (slices 10) (dz 1) (lcos-seq '(:dark 0 1 2)))
   (unless show-on-screen 
     (setf run-gui::*do-capture* nil
 	  run-gui::*do-display-queue* nil)
@@ -300,12 +306,19 @@
     (setf run-gui::*line* (sb-concurrency:make-queue :name 'picture-fifo)))
 
   (prepare-stack-acquisition :slices slices :dz dz :lcos-seq lcos-seq)
-  (let ((phases (ss :phases)))
-    (dolist (e (get-lcos-sequence))     
-      (unless (eq e :dark)
-	(run-gui::lcos (format nil "qgrating-disk 425 325 200 ~d ~d ~d" 
-		      e phases width)))
-      (run-gui::lcos "qswap")))
+  (dolist (pic (get-lcos-picture-sequence))
+    (dolist (pic-el pic)
+      (case (first pic-el)
+	(:dark (return)) ;; dark images need no drawing
+	(:grating-disk (destructuring-bind (cmd x y r phases phase width) pic-el
+			 (declare (ignore cmd))
+			 (run-gui::lcos (format nil "qgrating-disk ~f ~f ~f ~d ~d ~d" 
+						(* 1s0 x) (* 1s0 y) (* 1s0 r) phases phase width))))
+	(:disk (destructuring-bind (cmd x y r) pic-el
+		 (declare (ignore cmd))
+		 (run-gui::lcos (format nil "qdsk ~f ~f ~f" 
+					(* 1s0 x)  (* 1s0 y) (* 1s0 r)))))))
+    (run-gui::lcos "qswap"))
 
   (let ((img-array (make-array (length (get-capture-sequence))))
 	(img-time (make-array (length (get-capture-sequence)))))
@@ -315,21 +328,29 @@
     
     (start-move-thread) ;; I could start this in the opengl drawing loop
     
-    (unless show-on-screen (let ((count 0))
-			     (loop while (and run-gui::*do-capture*
-					      (< count (length img-array))) do
-				  (run-gui::capture)
-				  (loop for i below (sb-concurrency:queue-count run-gui::*line*) do
-				       (setf (aref img-array count) (sb-concurrency:dequeue run-gui::*line*)
-					     (aref img-time count) (get-internal-real-time))
-				       (incf count)))
-			     (clara:abort-acquisition)
-			     (clara:free-internal-memory))
-	    (setf (ss :image-array) img-array 
-		  (ss :image-time) img-time)))
+    (unless show-on-screen 
+      (let ((count 0))
+	(loop while (and run-gui::*do-capture*
+			 (< count (length img-array))) do
+	     (run-gui::capture)
+	     (loop for i below (sb-concurrency:queue-count run-gui::*line*) do
+		  (setf (aref img-array count) (sb-concurrency:dequeue run-gui::*line*)
+			(aref img-time count) (get-internal-real-time))
+		  (incf count)))
+	(clara:abort-acquisition)
+	(clara:free-internal-memory))
+      (setf (ss :image-array) img-array 
+	    (ss :image-time) img-time)))
 
   (setf run-gui::*do-display-queue* t))
 
+
+#+nil
+(dolist (e (get-lcos-sequence))     
+  (unless (eq e :dark)
+    (run-gui::lcos (format nil "qgrating-disk 425 325 200 ~d ~d ~d" 
+			   e phases width)))
+  (run-gui::lcos "qswap"))
 
 (defun get-dark-indices ()
   (mapcar #'(lambda (x) (getf x :image-index))
@@ -430,6 +451,20 @@
    (vol:normalize-2-sf/ub8
     (vol:convert-2-ub16/sf-mul (aref (ss :image-array) i)))))
 
+
+(defun get-lcos-phase (x)
+  "Display the phase of the first grating in the things that are
+displayed on the LCoS. If there is no grating, return nil."
+  (let ((c (getf x :content)))
+    (check-exposure c)
+    (dolist (e (getf (getf c :exposure)
+		     :lcos))
+      (when (and (listp e) 
+		 (eq (first e) :grating-disk))
+	(return-from get-lcos-phase 
+	  (sixth e))))))
+
+
 (defun draw-moves ()
   (flet ((vline (x &optional (y0 0) (y1 80))
 	   (with-primitive :lines
@@ -446,28 +481,28 @@
      (dolist (e (ss :real-moves))
        (vline e))
      
+     
      (let ((it (ss :image-time)))
        (when it
 	 (dotimes (i (length it))
-	   (case (getf (elt (get-capture-sequence) i)
-		       :content)
-	     (:dark (color .4 .4 .4))
-	     (0 (color .8 .0 .2))
-	     (1 (color .1 .9 .2))
-	     (2 (color .1 .2 1)))
-	   (vline (- (aref it i) (ss :start))
-		  0 20))))
+	   (let ((phase (get-lcos-phase 
+			 (elt (get-capture-sequence) i))))
+	     (if phase
+		 (color (/ phase (ss :phases)) .3 .2)
+		 (color 1 1 1))
+	     (vline (- (aref it i) (ss :start))
+		    0 20)))))
      
      (translate 0 20 0)
+     
      (dolist (e (ss :seq))
        (case (getf e :type)
 	 (:capture
-	  (case (getf e :content)
-	    (:dark (color .4 .4 .4))
-	    (0 (color .9 .1 .1))
-	    (1 (color 0 .7 0))
-	    (2 (color .2 .2 1)))
-	  (rect (getf e :start) 0 (getf e :end) 20))
+	  (let ((phase (get-lcos-phase e)))
+	    (if phase
+		(color (/ phase (ss :phases)) .3 .2)
+		(color 1 1 1))
+	    (rect (getf e :start) 0 (getf e :end) 20)))
 	 (:stage-move
 	  (color 1 1 1)
 	  (rect (getf e :start) 21 (getf e :end) 41)))))
