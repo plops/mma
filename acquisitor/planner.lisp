@@ -59,16 +59,28 @@
 #+nil
 (decode-phase-hash 312)
 
+
 (defun put-phases-into-hash ()
-  (let ((tbl (make-hash-table)))
-   (mapcar #'(lambda (x)
-	       (setf (gethash (encode-phase-hash (getf x :slice) 
-						 (getf x :content))
+ (let ((tbl (make-hash-table)))
+   (mapcar (lambda (x)
+	     (let ((phase (sixth (first (getf 
+					 (getf 
+					  (getf x :content)
+					  :exposure)
+					 :lcos)))))
+	       (setf (gethash (encode-phase-hash (getf x :slice)
+						 phase)
 			      tbl)
-		     (getf x :image-index)))
-	   (remove-if #'(lambda (x) (eq :dark (getf x :content)))
-		      (get-capture-sequence)))
+		     (getf x :image-index))))
+	   (remove-if-not (lambda (x) (eq :grating-disk
+					  (first (first (getf 
+							 (getf
+							  (getf x :content)
+							  :exposure)
+							 :lcos)))))
+			  (get-capture-sequence)))
    tbl))
+
 #+nil
 (defparameter *qee*
  (get-dark-indices))
@@ -106,7 +118,7 @@
 					   (dotimes (phase phases)
 					     (push (make-exposure
 						    :lcos `((:grating-disk 200 225 380 
-									   ,phases ,phase ,grating-width))
+									   ,phase ,phases ,grating-width))
 						    :mma `((:bright))
 						    :accum-group (encode-phase-hash k phase))
 						   rlcos)))
@@ -302,7 +314,7 @@
        (case (first pic-el)
 	 (:dark (return :display-pic)) ;; dark images need no drawing
 	 (:grating-disk 
-	  (destructuring-bind (cmd x y r phases phase width) pic-el
+	  (destructuring-bind (cmd x y r phase phases width) pic-el
 	    (declare (ignore cmd))
 	    (run-gui::lcos (format nil "qgrating-disk ~f ~f ~f ~d ~d ~d" 
 				   (* 1s0 x) (* 1s0 y) (* 1s0 r)
