@@ -186,10 +186,10 @@
  (dotimes (j 1)
    (dotimes (i 300)
      (dotimes (k 2)
-       #+nil(lcos (format nil "qgrating-disk 425 325 200 ~d ~d 4" 
+       (lcos (format nil "qgrating-disk 425.0 325.2 200.1 ~d ~d 12" 
 		     (mod i phases) phases))
-       ;;(draw-grating-disk 200 225 380 :phase (mod i 3)))
-       (lcos "qdisk 200 225 280")
+       ;; (draw-grating-disk 200 225 380 :phase (mod i 3)))
+       ;;(lcos "qdisk 200 225 280")
        (sleep .001)
        (lcos "qswap")))
    (sleep .4)
@@ -423,7 +423,7 @@
 		(sb-concurrency:enqueue a *line*)))))))))
 
 #+nil
-(acquisitor:acquire-stack :show-on-screen nil :slices 48 :dz 1 :width 5 :lcos-seq '(:dark 0 1 2))
+(acquisitor:acquire-stack :show-on-screen nil :slices 48 :dz 1)
 
 #+nil
 (loop for e in (acquisitor:reconstruct-from-phase-images :algorithm :sqrt)
@@ -612,10 +612,12 @@
   (sb-thread:make-thread
    #'(lambda () 
        (setf *lcos-chan*
-	     (sb-ext:run-program "/home/martin/0505/mma/glfw-server/glfw" '("1280" "1024")
-				 :output :stream
-				 :input :stream
-				 :wait nil))
+	     (sb-ext:run-program
+	      "/home/martin/0505/mma/glfw-server/glfw"
+	      '("1280" "1024")
+	      :output :stream
+	      :input :stream
+	      :wait nil))
        (sb-ext:process-wait *lcos-chan*))
    :name "glfw-waiting-father")
   

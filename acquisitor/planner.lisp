@@ -44,10 +44,11 @@
 
 (defun encode-phase-hash (slice phase)
   "Encode phase and slice into a hash key."
-  (unless (< (ss :phases) 100)
-    (break "Phases can't be encoded into a number with two digits."))
+  #+nil(unless (< (ss :phases) 100)
+	 (break "Phases can't be encoded into a number with two digits."))
   (+ (* 100 slice)
      phase))
+
 #+nil
 (encode-phase-hash 12 3)
 
@@ -75,6 +76,8 @@
 #+nil
 (defparameter *hsh* (put-phases-into-hash))
 
+#+nil
+(declaim (optimize (debug 3) (safety 3)))
 
 
 (defun plan-full-grating-stack (&key (slices 10) (phases 3) (repetition 2) (start-pos 0) (dz 1)
@@ -102,7 +105,7 @@
 					 (dotimes (j repetition)
 					   (dotimes (phase phases)
 					     (push (make-exposure
-						    :lcos `((:grating-disk 425 325 300 
+						    :lcos `((:grating-disk 200 225 380 
 									   ,phases ,phase ,grating-width))
 						    :mma `((:bright))
 						    :accum-group (encode-phase-hash k phase))
@@ -275,7 +278,12 @@
 (defun get-capture-sequence ()
  (remove-if-not #'(lambda (x) (eq :capture (getf x :type))) (ss :seq)))
 
-(defun acquire-stack (&key (show-on-screen nil) (slices 10) (dz 1) (repetition 1))
+#+nil
+(length
+ (get-capture-sequence))
+
+(defun acquire-stack (&key (show-on-screen nil)
+		      (slices 10) (dz 1) (repetition 1))
   (unless show-on-screen 
     (setf run-gui::*do-capture* nil
 	  run-gui::*do-display-queue* nil)
@@ -289,17 +297,21 @@
 				     :repetition repetition
 				     :phases 3 :width 3)
   (dolist (pic (get-lcos-picture-sequence))
-    (dolist (pic-el pic)
-      (case (first pic-el)
-	(:dark (return)) ;; dark images need no drawing
-	(:grating-disk (destructuring-bind (cmd x y r phases phase width) pic-el
-			 (declare (ignore cmd))
-			 (run-gui::lcos (format nil "qgrating-disk ~f ~f ~f ~d ~d ~d" 
-						(* 1s0 x) (* 1s0 y) (* 1s0 r) phases phase width))))
-	(:disk (destructuring-bind (cmd x y r) pic-el
-		 (declare (ignore cmd))
-		 (run-gui::lcos (format nil "qdsk ~f ~f ~f" 
-					(* 1s0 x)  (* 1s0 y) (* 1s0 r)))))))
+    (block :display-pic
+     (dolist (pic-el pic)
+       (case (first pic-el)
+	 (:dark (return :display-pic)) ;; dark images need no drawing
+	 (:grating-disk 
+	  (destructuring-bind (cmd x y r phases phase width) pic-el
+	    (declare (ignore cmd))
+	    (run-gui::lcos (format nil "qgrating-disk ~f ~f ~f ~d ~d ~d" 
+				   (* 1s0 x) (* 1s0 y) (* 1s0 r)
+				   phase phases width))))
+	 (:disk (destructuring-bind (cmd x y r) pic-el
+		  (declare (ignore cmd))
+		  (run-gui::lcos 
+		   (format nil "qdisk ~f ~f ~f" 
+			   (* 1s0 x)  (* 1s0 y) (* 1s0 r))))))))
     (run-gui::lcos "qswap"))
 
   (let ((img-array (make-array (length (get-capture-sequence))))
@@ -315,8 +327,10 @@
 	(loop while (and run-gui::*do-capture*
 			 (< count (length img-array))) do
 	     (run-gui::capture)
-	     (loop for i below (sb-concurrency:queue-count run-gui::*line*) do
-		  (setf (aref img-array count) (sb-concurrency:dequeue run-gui::*line*)
+	     (loop for i below (sb-concurrency:queue-count run-gui::*line*)
+		do
+		  (setf (aref img-array count) (sb-concurrency:dequeue
+						run-gui::*line*)
 			(aref img-time count) (get-internal-real-time))
 		  (incf count)))
 	(clara:abort-acquisition)
@@ -327,7 +341,7 @@
   (setf run-gui::*do-display-queue* t))
 
 #+nil
-(acquire-stack :slices 30 :repetition 2)
+(acquire-stack :slices 10 :repetition 1)
 
 #+nil
 (dolist (e (get-lcos-sequence))     
@@ -358,7 +372,6 @@
 #+nil
 (vol::write-pgm-transposed "/dev/shm/o.pgm"
 			   (vol:normalize-2-sf/ub8 (accumulate-dark-images)))
-
 
 (defun reconstruct-from-phase-images (&key (algorithm :max-min))
   (declare (type (member :max-min :sqrt) algorithm))
