@@ -160,7 +160,9 @@
 #+nil
 (mma "frame-voltage 15.0 15.0") ;; 15V should tilt ca. 120nm
 #+nil
-(mma "quit")
+(progn
+  (mma "stop")
+  (mma "quit"))
 #+nil
 (clara::uninit)
 
@@ -438,7 +440,7 @@
 		(sb-concurrency:enqueue a *line*)))))))))
 
 #+nil
-(acquisitor:acquire-stack :show-on-screen nil :slices 32 :dz 1)
+(acquisitor:acquire-stack :show-on-screen nil :slices 32 :dz 1 :repetition 4)
 
 #+nil
 (loop for e in (acquisitor:reconstruct-from-phase-images :algorithm :sqrt)

@@ -103,11 +103,17 @@
         (time (+ start-time frame-period))
 	(image-index 0))
     (push (list :type :capture
-                :start 0
-                :end 15
+                :start time
+                :end (+ time 15)
                 :content (make-exposure :accum-group 1)
 		:image-index image-index)
           res)
+    (push `(:type :mma
+		  :start ,time
+		  :end ,(+ time 15)
+		  :content ((:dark)))
+	  res)
+
     (loop for k below slices do
          (let ((cam nil))
           (push (list :type :display
@@ -153,9 +159,9 @@
 			     (incf time frame-period))
                         (reverse lcos)))
                 res)
-          (loop for e in (reverse cam) do
+	  (loop for e in (reverse cam) do
                (push e res))
-          (incf pos dz)
+	  (incf pos dz)
           (unless (= k (- slices 1))
            (push (list :type :stage-move
                        :start (+ time frame-period) ;; move stage in one of the dark images
@@ -307,6 +313,8 @@
 			   (acquisitor::ss :seq)))
     (reverse res)))
 
+#+nil
+(get-mma-picture-sequence)
 
 (defun store-images-into-mma ()
  (let* ((n 256)
@@ -320,6 +328,8 @@
 	     (aref black j i) 0)))
    (let* ((mm (get-mma-picture-sequence))
 	  (n (length mm)))
+     (unless (< n 1024)
+       (break "too many mma images to fit into memory of its controller"))
      (dotimes (i n)
        (run-gui::send-binary (case (elt mm i)
 			       (:dark black)
@@ -370,8 +380,8 @@
 
   (let ((img-array (make-array (length (get-capture-sequence))))
 	(img-time (make-array (length (get-capture-sequence)))))
-    (run-gui::lcos "toggle-queue 1")
     (run-gui::mma "start")
+    (run-gui::lcos "toggle-queue 1")
     (setf (ss :set-start-at-next-swap-buffer) t)
     (unless show-on-screen (clara:start-acquisition)) ;; start camera
     
