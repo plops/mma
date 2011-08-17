@@ -122,37 +122,6 @@
 	       (acquisitor:ss :seq))
 
 
-(defun get-mma-picture-sequence ()
-  (let ((res nil))
-    (mapcar (lambda (y) (push (first (first (getf y :content y))) 
-			      res))
-	    (remove-if-not (lambda (x) (eq :mma (getf x :type)))
-			   (acquisitor::ss :seq)))
-    (reverse res)))
-
-
-(defun store-images-into-mma ()
- (let* ((n 256)
-	(white (make-array (list n n)
-			   :element-type '(unsigned-byte 16)))
-	(black (make-array (list n n)
-			   :element-type '(unsigned-byte 16))))
-   (dotimes (i 256)
-     (dotimes (j 256)
-       (setf (aref white j i) 4059
-	     (aref black j i) 0)))
-   (let* ((mm (get-mma-picture-sequence))
-	  (n (length mm)))
-     (dotimes (i n)
-       (send-binary (case (elt mm i)
-		      (:dark black)
-		      (:bright white)
-		      (t (break "error, unknown mma image type ~a"
-				(elt mm i)))))
-       ;; store first image as i=1
-       (mma (format nil "img ~d" (1+ i)))
-       (mma (format nil "set-picture-sequence ~a ~a 1" (1+ i) (if (= (1+ i) n) 1 0)))))))
-
 #+nil
 (time
  (store-images-into-mma))
@@ -161,7 +130,8 @@
 (defun mma (cmd)
   (let ((s (sb-ext:process-input *mma-chan*)))
     (format s "~a~%" cmd)
-    (finish-output s)))
+    (finish-output s)
+    (sleep .02)))
 #+nil
 (mma "white")
 #+nil
