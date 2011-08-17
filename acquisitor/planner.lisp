@@ -42,28 +42,28 @@
 
 
 
-(defun encode-phase-hash (slice phase)
-  "Encode phase and slice into a hash key."
-  #+nil(unless (< (ss :phases) 100)
-	 (break "Phases can't be encoded into a number with two digits."))
-  (+ (* 100 slice)
-     phase))
+(let ((max-phases 100))
+ (defun encode-phase-hash (slice phase)
+   "Encode phase and slice into a hash key."
+   #+nil(unless (< (ss :phases) 100)
+	  (break "Phases can't be encoded into a number with two digits."))
+   (+ (* max-phases slice)
+      phase))
+
+  (defun decode-phase-hash (key)
+    "Retrun slice and phase of a hash key."
+    (values (floor key max-phases)
+	    (mod key max-phases))))
 
 #+nil
 (encode-phase-hash 12 3)
-
-(defun decode-phase-hash (key)
-  "Retrun slice and phase of a hash key."
-  (values (floor key 100)
-	  (mod key 100)))
 #+nil
 (decode-phase-hash 312)
-
 
 (defun put-phases-into-hash ()
  (let ((tbl (make-hash-table)))
    (mapcar (lambda (x)
-	     (let ((phase (sixth (first (getf 
+	     (let ((phase (fifth (first (getf 
 					 (getf 
 					  (getf x :content)
 					  :exposure)
@@ -80,6 +80,8 @@
 							 :lcos)))))
 			  (get-capture-sequence)))
    tbl))
+#+nil
+(defparameter *hsh* (put-phases-into-hash))
 
 #+nil
 (defparameter *qee*
@@ -384,6 +386,7 @@
 #+nil
 (vol::write-pgm-transposed "/dev/shm/o.pgm"
 			   (vol:normalize-2-sf/ub8 (accumulate-dark-images)))
+
 
 (defun reconstruct-from-phase-images (&key (algorithm :max-min))
   (declare (type (member :max-min :sqrt) algorithm))
