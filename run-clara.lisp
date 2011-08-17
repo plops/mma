@@ -54,9 +54,10 @@
 ;; (start-acquisition)
 #+nil
 (abort-acquisition)
-
-
-
+#+nil
+(clara::get-number-new-images)
+#+nil
+(free-internal-memory)
 ;; (get-detector)
 ;; (check (cooler-on))
 ;; (cooler-off)

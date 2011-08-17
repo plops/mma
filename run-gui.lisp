@@ -1,3 +1,4 @@
+
 (eval-when (:compile-toplevel)
   (progn
     (sb-posix:setenv "DISPLAY" ":0" 1)
@@ -26,10 +27,12 @@
 (unless focus::*fd*
   (focus:connect "/dev/ttyUSB0"))
 #+nil
+(focus:connect "/dev/ttyUSB1")
+#+nil
 (focus:get-position)
 #+nil
 (focus:set-position
- (+ (focus:get-position) .4s0))
+ (+ (focus:get-position) -.4s0))
 
 (defvar *mma-chan* nil)
 (defvar *binary-fifo* nil)
@@ -111,9 +114,49 @@
 					    90)))))
     a))
 
-
 #+nil
 (send-binary *mma-img*)
+
+#+nil
+(remove-if-not (lambda (x) (getf x :type)) 
+	       (acquisitor:ss :seq))
+
+
+(defun get-mma-picture-sequence ()
+  (let ((res nil))
+    (mapcar (lambda (y) (push (first (first (getf y :content y))) 
+			      res))
+	    (remove-if-not (lambda (x) (eq :mma (getf x :type)))
+			   (acquisitor::ss :seq)))
+    (reverse res)))
+
+
+(defun store-images-into-mma ()
+ (let* ((n 256)
+	(white (make-array (list n n)
+			   :element-type '(unsigned-byte 16)))
+	(black (make-array (list n n)
+			   :element-type '(unsigned-byte 16))))
+   (dotimes (i 256)
+     (dotimes (j 256)
+       (setf (aref white j i) 4059
+	     (aref black j i) 0)))
+   (let* ((mm (get-mma-picture-sequence))
+	  (n (length mm)))
+     (dotimes (i n)
+       (send-binary (case (elt mm i)
+		      (:dark black)
+		      (:bright white)
+		      (t (break "error, unknown mma image type ~a"
+				(elt mm i)))))
+       ;; store first image as i=1
+       (mma (format nil "img ~d" (1+ i)))
+       (mma (format nil "set-picture-sequence ~a ~a 1" (1+ i) (if (= (1+ i) n) 1 0)))))))
+
+#+nil
+(time
+ (store-images-into-mma))
+
 
 (defun mma (cmd)
   (let ((s (sb-ext:process-input *mma-chan*)))
@@ -125,6 +168,8 @@
 (mma "black")
 #+nil
 (mma "set-cycle-time 33.27")
+#+nil
+(mma "help")
 #+nil
 (mma "deflection 118.5")
 #+nil ;; ANGLE
@@ -301,7 +346,7 @@
 
 #+nil
 (require :vol)
-
+(defvar *line* nil)
 
 (progn
   (defparameter *t8* nil)
@@ -423,7 +468,7 @@
 		(sb-concurrency:enqueue a *line*)))))))))
 
 #+nil
-(acquisitor:acquire-stack :show-on-screen nil :slices 48 :dz 1)
+(acquisitor:acquire-stack :show-on-screen nil :slices 32 :dz 1)
 
 #+nil
 (loop for e in (acquisitor:reconstruct-from-phase-images :algorithm :sqrt)

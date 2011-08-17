@@ -119,7 +119,7 @@
 					 (dotimes (j repetition)
 					   (dotimes (phase phases)
 					     (push (make-exposure
-						    :lcos `((:grating-disk 200 225 380 
+						    :lcos `((:grating-disk 325 225 225 
 									   ,phase ,phases ,grating-width))
 						    :mma `((:bright))
 						    :accum-group (encode-phase-hash k phase))
