@@ -643,12 +643,13 @@ main(int argc,char**argv)
       glRectf(v,0,v+2,400);
       draw_number(frame_count);
     }
-    if(queue_images_displayed==1) // if we are at the first image synchronize if mma
-	mma_sync();
 
 
     //glfwSleep(1./72);
     glfwSwapBuffers();
+    if(queue_images_displayed==1) // if we are at the first image synchronize if mma
+	mma_sync();
+
     old_usec=tv.tv_usec;
     old_sec=tv.tv_sec;	
   }

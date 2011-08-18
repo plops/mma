@@ -113,6 +113,21 @@
 		  :end ,(+ time 15)
 		  :content ((:dark)))
 	  res)
+    (push `(:type :mma
+		  :start ,time
+		  :end ,(+ time 15)
+		  :content ((:dark)))
+	  res)
+    (push `(:type :mma
+		  :start ,time
+		  :end ,(+ time 15)
+		  :content ((:dark)))
+	  res)
+    (push `(:type :mma
+		  :start ,time
+		  :end ,(+ time 15)
+		  :content ((:dark)))
+	  res)
 
     (loop for k below slices do
          (let ((cam nil))
@@ -346,7 +361,7 @@
 
 (defun acquire-stack (&key (show-on-screen nil)
 		      (slices 10) (dz 1) (repetition 1))
-  (run-gui::mma "stop")
+;  (run-gui::mma "stop")
   (store-images-into-mma)
   (unless show-on-screen 
     (setf run-gui::*do-capture* nil
@@ -380,7 +395,7 @@
 
   (let ((img-array (make-array (length (get-capture-sequence))))
 	(img-time (make-array (length (get-capture-sequence)))))
-    (run-gui::mma "start")
+ ;   (run-gui::mma "start")
     (run-gui::lcos "toggle-queue 1")
     (setf (ss :set-start-at-next-swap-buffer) t)
     (unless show-on-screen (clara:start-acquisition)) ;; start camera

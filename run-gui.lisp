@@ -440,7 +440,7 @@
 		(sb-concurrency:enqueue a *line*)))))))))
 
 #+nil
-(acquisitor:acquire-stack :show-on-screen nil :slices 32 :dz 1 :repetition 4)
+(acquisitor:acquire-stack :show-on-screen nil :slices 32 :dz 1 :repetition 1)
 
 #+nil
 (loop for e in (acquisitor:reconstruct-from-phase-images :algorithm :sqrt)
