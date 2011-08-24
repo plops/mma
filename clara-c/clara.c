@@ -2,12 +2,19 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
+#include <malloc.h>
 
 // calls to clara SDK have to return DRV_SUCCESS
-#define C(cmd) do{if(DRV_SUCCESS!=cmd)printf("%s:%d in function %s at call to %s\n",__FILE__,__LINE__,__func__,#cmd);}while(0)
+#define C(cmd) do{\
+  unsigned int ret=cmd;\
+  if(DRV_SUCCESS!=ret)\
+    printf("%s:%d in function %s at call to %s return=%d\n",\
+	   __FILE__,__LINE__,__func__,#cmd,ret);\
+}while(0)
 
 at_32 clara_circ_buf_size;
-
+unsigned short *clara_buf;
+int clara_h,clara_w;
 int temp_min=-55,temp_shutoff=-55;
 
 void
@@ -26,8 +33,15 @@ init_clara()
   C(SetADChannel(1 /*fast*/));
   C(SetFastExtTrigger(1));
   C(SetFrameTransferMode(1));
-  C(SetIsolatedCropMode(1,432,412,1,1));
+  int h=432, w=412;
+  clara_h=h;
+  clara_w=w;
+  C(SetIsolatedCropMode(1,h,w,1,1));
   C(GetSizeOfCircularBuffer(&clara_circ_buf_size));
+  clara_buf=malloc(sizeof(*clara_buf)*
+		   h*w*clara_circ_buf_size);
+  if(!clara_buf)
+    printf("can't allocate memory for pictures\n");
   C(SetAcquisitionMode(5 /*run till abort*/));
   C(SetTemperature(-55));
 }
@@ -37,19 +51,44 @@ uninit_clara()
 {
   C(SetTemperature(temp_shutoff));
   float t;
-  C(GetTemperatureF(&t));
+  GetTemperatureF(&t);
   while(fabsf(temp_shutoff-t)>5){
     printf("temperature is %f should be %d\n",
 	   t,temp_shutoff);
-    C(GetTemperatureF(&t));
+    GetTemperatureF(&t);
     sleep(5);
   }
   C(ShutDown()); 
+}
+
+void
+capture_clara()
+{
+  C(WaitForAcquisition());
+  at_32 first,last;
+  C(GetNumberNewImages(&first,&last));
+  int n=last-first;
+  printf("received %d images\n",1+n);
+  at_32 pixels=(1+n)*clara_h*clara_w;
+  at_32 validfirst,validlast;
+  C(GetImages16(first,last,clara_buf,pixels,
+		&validfirst,&validlast));
+  if((validlast!=last) || (validfirst!=first))
+    printf("couldn't get as many images as expected\n");
+  
 }
 
 int
 main()
 {
   init_clara();
+  C(PrepareAcquisition());
+  C(StartAcquisition());
+  int i;
+  for(i=0;i<100;i++)
+    capture_clara();
+  C(AbortAcquisition());
+  C(FreeInternalMemory());
+  uninit_clara();
   return 0;
 }
