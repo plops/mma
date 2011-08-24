@@ -181,20 +181,13 @@ int frame_count=0;
 void
 draw_lcos()
 {
-  struct timeval tv;    
-  suseconds_t old_usec=0;
-  time_t old_sec=0;
 
   frame_count++;
-  gettimeofday(&tv,0);
   
   glClear(GL_COLOR_BUFFER_BIT);
   glLoadMatrixf(m);
 
-  if(0)
-  printf("q swap frame-count=%d sec=%lu usec=%lu dt_ms=%3.3g\n",
-	 frame_count,tv.tv_sec,tv.tv_usec,
-	 (tv.tv_usec/1000.-old_usec/1000.)+(tv.tv_sec/1000.-old_sec/1000.));
+
   
   if((frame_count<10) ) //|| (frame_count%2)==0)
     glColor4f(1,1,1,1);
@@ -204,11 +197,6 @@ draw_lcos()
   glRectf(0,0,400,400);
   
   glfwSwapBuffers();
-  
-  // for first image mma_sync();
-  
-  old_usec=tv.tv_usec;
-  old_sec=tv.tv_sec; 
 }
 
 void
@@ -387,8 +375,20 @@ main()
   // if(0!=SLM_SetStartMMA())
     //    e("start");
 
+    struct timeval tv;    
+  suseconds_t old_usec=0;
+  time_t old_sec=0;
+
+
 
   for(j=0;j<80;j++){
+    gettimeofday(&tv,0);
+    
+    printf("%3.3g ",
+	   (tv.tv_usec/1000.-old_usec/1000.)+(tv.tv_sec/1000000.-old_sec/1000000.));
+    
+    
+
     printf("\n");
     frame_count=0;
     sync_mma();
@@ -400,6 +400,9 @@ main()
     }
     C(AbortAcquisition());
     C(FreeInternalMemory());
+    old_usec=tv.tv_usec;
+    old_sec=tv.tv_sec; 
+    
   }
   uninit_clara();
   uninit_lcos();
