@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include "slm.h"
+#include <pthread.h>
 
 // calls to clara SDK have to return DRV_SUCCESS
 #define C(cmd) do{\
@@ -56,7 +57,7 @@ uninit_clara()
   C(SetTemperature(temp_shutoff));
   float t;
   GetTemperatureF(&t);
-  while(fabsf(temp_shutoff-t)>20){
+  while(fabsf(temp_shutoff-t)>60){
     printf("temperature is %f should be %d\n",
 	   t,temp_shutoff);
     GetTemperatureF(&t);
@@ -189,10 +190,10 @@ draw_lcos()
 
 
   
-  if((frame_count<10) ) //|| (frame_count%2)==0)
-    glColor4f(1,1,1,1);
-  else
+  if((frame_count==6)||(frame_count==7)) //|| (frame_count%2)==0)
     glColor4f(0,0,0,1);
+  else
+    glColor4f(1,1,1,1);
 
   glRectf(0,0,400,400);
   
@@ -218,7 +219,10 @@ print_status_mma()
   unsigned int stat,error;
   if(0!=SLM_ReadStatus(&stat,&error))
     e("read-status");
-  printf("status 0x%x error 0x%x\n",stat,error);
+  if(error)
+    printf("status 0x%x error 0x%x\n",stat,error);
+  else
+    printf("status 0x%x\n",stat);
 }
 
 void
@@ -351,61 +355,88 @@ uninit_mma()
   printf("bye!\n");
 }
 
+pthread_t th_cam;
 
+int do_capture=1;
+
+int n_pic=34;
+
+void*
+continous_capture_clara(void*threadid)
+{
+  long tid=(long)threadid;
+  C(StartAcquisition());
+  int i=0;
+  while(i<n_pic*20+1){
+    
+    capture_clara();
+    if(0==(i%n_pic))
+      printf("\n");
+    i++;
+  }
+  C(AbortAcquisition());
+  C(FreeInternalMemory());
+  pthread_exit(NULL);
+}
+
+
+#ifdef DOEXEC
 int
 main()
 {
   init_lcos();
   init_clara();
   init_mma();
+  
+  SLM_SetStopMMA();
 
-  //  if(0!=SLM_SetStopMMA())
-  //  e("stop mma");
-
-  int j;
-  for(j=0;j<11;j++){
-    fill_mma(((j==4)|(j==5)|(j==6)||(j==8))?90:4096);
-    draw_mma(1+j,0,1);
+  {
+    int n=n_pic;
+    int j;
+    for(j=0;j<n;j++){
+      fill_mma(((j==10)||(j==8))?90:4096);
+      draw_mma(1+j,(j==(n-1))?1:0,1);
+    }
   }
-  fill_mma(4096);
-  draw_mma(1+12,1,1);
+  int j;
   
 
   C(PrepareAcquisition());
   // if(0!=SLM_SetStartMMA())
     //    e("start");
 
-    struct timeval tv;    
-  suseconds_t old_usec=0;
-  time_t old_sec=0;
 
+  pthread_create(&th_cam,NULL,
+		 continous_capture_clara,NULL);
 
-
-  for(j=0;j<80;j++){
-    gettimeofday(&tv,0);
-    
-    printf("%3.3g ",
-	   (tv.tv_usec/1000.-old_usec/1000.)+(tv.tv_sec/1000000.-old_sec/1000000.));
-    
-    
-
-    printf("\n");
+  for(j=0;j<20;j++){
     frame_count=0;
-    sync_mma();
-    C(StartAcquisition());
+    SLM_SetStartMMA();
     int i;
-    for(i=0;i<12;i++){
-      capture_clara();
+    for(i=0;i<2*n_pic;i++)
       draw_lcos();
-    }
-    C(AbortAcquisition());
-    C(FreeInternalMemory());
-    old_usec=tv.tv_usec;
-    old_sec=tv.tv_sec; 
-    
+    SLM_SetStopMMA();
   }
-  uninit_clara();
+  do_capture=0;
+  sleep(32000);
+  pthread_join(th_cam,NULL);
+
   uninit_lcos();
   uninit_mma();
+  uninit_clara();
   return 0;
 }
+#endif
+
+/* struct timeval tv;     */
+/* suseconds_t old_usec=0; */
+/* time_t old_sec=0; */
+
+/* gettimeofday(&tv,0); */
+
+/* if(0) */
+/*   printf(" %05d ", */
+/* 	 (int)fabs(1e-2*((tv.tv_usec-old_usec)+(tv.tv_sec/1e6-old_sec/1e6)))); */
+
+/* old_usec=tv.tv_usec; */
+/* old_sec=tv.tv_sec;  */
