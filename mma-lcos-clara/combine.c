@@ -25,6 +25,7 @@ int temp_min=20,temp_shutoff=20;
 void
 init_clara()
 {
+  printf("init-clara\n");
   at_32 n,handle;
   C(GetAvailableCameras(&n));
   C(GetCameraHandle(n-1,&handle));
@@ -54,6 +55,7 @@ init_clara()
 void
 uninit_clara()
 {
+  printf("uninit-clara\n");
   C(SetTemperature(temp_shutoff));
   float t;
   GetTemperatureF(&t);
@@ -141,11 +143,14 @@ init_matrix()
   m[15]=1;
 }
 
+int do_draw_lcos=1;
+void
+draw_lcos();
 
 void
 init_lcos()
 {
-  
+  printf("init-lcos\n");
   // make sure frame rate update cycle is phase locked to vertical
   // refresh of screen. On Nvidia hardware this can be done by setting
   // the following environment variable.
@@ -175,9 +180,16 @@ init_lcos()
   glMatrixMode(GL_PROJECTION);
   glOrtho(0,1280,1024,0,-1,1);
   glMatrixMode(GL_MODELVIEW);
+
+  while(do_draw_lcos){
+    draw_lcos();
+  }
+  
 }
 
 int frame_count=0;
+
+void (*external_fun)()=0;
 
 void
 draw_lcos()
@@ -198,11 +210,18 @@ draw_lcos()
   glRectf(0,0,400,400);
   
   glfwSwapBuffers();
+
+  if(external_fun){
+    printf("running external-fun\n");
+    external_fun();
+  }else
+    printf("external-fun not defined\n");
 }
 
 void
 uninit_lcos()
 {
+  printf("uninit-lcos\n");
   glfwCloseWindow();
   glfwTerminate();
   printf("bye from lcos\n");
@@ -237,9 +256,10 @@ draw_mma(unsigned short picture_nr,
 }
 
 void uninit_mma();
-void
+int
 init_mma()
 {
+  printf("init-mma\n");
   mma_buf=malloc(N*N*sizeof(*mma_buf));
   if(!mma_buf)
     printf("error while allocating mma_buf\n");
@@ -251,12 +271,14 @@ init_mma()
 			  "192.168.0.2","255.255.255.0",
 			  "0.0.0.0",4001)){
     e("register board");
+    return -1;
   }
   if(0!=SLM_SetLocalIf("192.168.0.1",4001)){
     e("set local interface");
   }
   if(0!=SLM_Connect()){
     e("connect");
+    return -2;
   }
   
   print_status_mma();
@@ -264,11 +286,13 @@ init_mma()
   if(0!=SLM_LoadConfiguration("/home/martin/cyberpower-mit/mma-essentials-0209/800803_dmdl6_20110215.ini")){
     e("config");
     uninit_mma();
-    exit(-1);
+    return -3;
   }
   
-  if(0!=SLM_LoadCalibrationData("/home/martin/mma-essentials-0209/VC2481_15_67_2011-02-01_0-250nm_Rand7_Typ1.cal"))
+  if(0!=SLM_LoadCalibrationData("/home/martin/mma-essentials-0209/VC2481_15_67_2011-02-01_0-250nm_Rand7_Typ1.cal")){
     e("calib");
+    return -4;
+  }
 
   if(0!=SLM_SetVoltage(SLM_SMART_IDX_VFRAME_F,15.0))
     e("set voltage vframe deflection phase");
@@ -324,6 +348,7 @@ init_mma()
   // start-mma) will never succeed.
 
   print_status_mma();
+  return 0;
 }
 
 void
@@ -346,6 +371,7 @@ fill_mma(unsigned short value)
 void
 uninit_mma()
 {
+  printf("uninit-mma\n");
   if(0!=SLM_SetStopMMA())
     e("stop mma");
   if(0!=SLM_SetPowerOff())
@@ -365,6 +391,7 @@ void*
 continuous_capture_clara(void*threadid)
 {
   long tid=(long)threadid;
+  printf("clara capture tid=%ld\n",tid);
   C(StartAcquisition());
   int i=0;
   while(i<n_pic*20+1){
@@ -379,6 +406,31 @@ continuous_capture_clara(void*threadid)
   pthread_exit(NULL);
 }
 
+
+void*
+continuous_draw_lcos(void*threadid)
+{
+  long tid=(long)threadid;
+  printf("draw lcos tid=%ld\n",tid);
+  while(do_draw_lcos){
+    draw_lcos();
+  }
+  pthread_exit(NULL);
+}
+
+pthread_t th_lcos=1234567;
+
+int
+start_lcos_thread()
+{
+  do_draw_lcos=1;
+  if(th_lcos==1234567)
+    pthread_create(&th_lcos,NULL,
+		   continuous_draw_lcos,NULL);
+  else
+    printf("thread seems to be running already\n");
+  return 0;
+}
 
 #ifdef DOEXEC
 int
