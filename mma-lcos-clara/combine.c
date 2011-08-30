@@ -57,7 +57,7 @@ uninit_clara()
   C(SetTemperature(temp_shutoff));
   float t;
   GetTemperatureF(&t);
-  while(fabsf(temp_shutoff-t)>60){
+  if(0)while(fabsf(temp_shutoff-t)>60){
     printf("temperature is %f should be %d\n",
 	   t,temp_shutoff);
     GetTemperatureF(&t);
@@ -362,7 +362,7 @@ int do_capture=1;
 int n_pic=34;
 
 void*
-continous_capture_clara(void*threadid)
+continuous_capture_clara(void*threadid)
 {
   long tid=(long)threadid;
   C(StartAcquisition());
