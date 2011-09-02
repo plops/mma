@@ -50,7 +50,8 @@ c_int.in_dll(c,"frame_count").value=8
 external_fun.value=addressof(syncfunc)
 c.start_lcos_thread()
 
-
+c.fill_mma(4095)
+c.draw_mma(1,1,1)
 
 def sync():
     c.SLM_SetStopMMA()
