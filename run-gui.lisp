@@ -36,7 +36,7 @@
 
 (defvar *mma-chan* nil)
 (defvar *binary-fifo* nil)
-
+(+ 1 2)
 #+nil
 (progn
   (sb-thread:make-thread 
@@ -157,6 +157,7 @@
 
 #+nil
 (mma "get-temperature")
+
 #+nil
 (mma "frame-voltage 15.0 15.0") ;; 15V should tilt ca. 120nm
 #+nil
@@ -440,7 +441,10 @@
 		(sb-concurrency:enqueue a *line*)))))))))
 
 #+nil
-(acquisitor:acquire-stack :show-on-screen nil :slices 32 :dz 1 :repetition 1)
+(acquisitor:acquire-stack :show-on-screen nil :slices 8 :dz 3 :repetition 1)
+
+#+nil
+acquisitor::*stack-state*
 
 #+nil
 (loop for e in (acquisitor:reconstruct-from-phase-images :algorithm :sqrt)
@@ -663,6 +667,23 @@
 #+nil
 (lcos (format nil "toggle-notify-mma ~d"
 	      (sb-ext:process-pid *mma-chan*)))
+
+(defparameter *bla* 0)
+(defparameter *bla-time* (get-internal-real-time))
+
+(get-internal-real-time)
+
+(defun reset-mma ()
+  (format t "I'm resetting the time ~a~%" (incf *bla*))
+  (setf *bla-time* (get-internal-real-time)))
+#+nil
+(progn
+  (defparameter *exec-time* (get-universal-time))
+  (lcos "swank-cmd")
+  (sleep .1)
+  (- *bla-time* *exec-time*))
+#+nil(reset-mma)
+
 
 
 ;; echo quit > /proc/`ps aux|grep er/glfw|grep -v grep |awk '{print $2}'`/fd/0

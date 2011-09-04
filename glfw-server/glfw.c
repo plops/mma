@@ -290,6 +290,14 @@ grating_disk(double*v)
   return 0.0;
 }
 
+double
+swank_cmd(double*v)
+{
+  system("bash -c \"cat /home/martin/0505/mma/glfw-server/swank-cmd|netcat localhost 4005 -q 1\"");
+  return 0.0;
+}
+
+
 // array that contains all functions that can be called from text interface
 struct{ 
   char name[CMDLEN];
@@ -314,6 +322,7 @@ struct{
 	{"toggle-stripes",1,0,toggle_stripes,"toggle display of calibration stripes"},
 	{"toggle-queue",1,0,toggle_queue,"toggle displaying things from the queue"},
 	{"toggle-notify-mma",1,0,toggle_notify_mma,"if pid!=0 send stop start to mma process"},
+	{"swank-cmd",0,0,swank_cmd,"send a reset-mma call to the sawnk server"},
 };
 
 
@@ -524,6 +533,7 @@ mma_sync()
   fclose(f);
   printf("mma has been notified\n");
 }
+
 
 
 // Main program. Open a window. Continuously read commands from the

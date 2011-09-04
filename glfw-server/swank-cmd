@@ -1,0 +1,1 @@
+000043(:emacs-rex (swank:interactive-eval "(reset-mma)") ":run-gui" t 64)
