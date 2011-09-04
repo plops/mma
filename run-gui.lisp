@@ -678,12 +678,17 @@ acquisitor::*stack-state*
   (setf *bla-time* (get-internal-real-time)))
 #+nil
 (progn
-  (defparameter *exec-time* (get-universal-time))
+  (defparameter *exec-time* (get-internal-real-time))
   (lcos "swank-cmd")
   (sleep .1)
   (- *bla-time* *exec-time*))
+;; takes 5 to 19 ms
+
 #+nil(reset-mma)
 
+(let ((a (get-internal-real-time)))
+  (sleep 1)
+  (- (get-internal-real-time) a))
 
 
 ;; echo quit > /proc/`ps aux|grep er/glfw|grep -v grep |awk '{print $2}'`/fd/0
