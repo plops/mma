@@ -380,6 +380,8 @@
   (prepare-grating-stack-acquisition :slices slices :dz dz 
 				     :repetition repetition
 				     :phases 3 :width 3)
+  (defparameter run-gui::*mma-state* 0)
+  (run-gui::lcos "qswank-cmd") ;; this will start mma
   (dolist (pic (get-lcos-picture-sequence))
     (block :display-pic
      (dolist (pic-el pic)
@@ -397,6 +399,10 @@
 		   (format nil "qdisk ~f ~f ~f" 
 			   (* 1s0 x)  (* 1s0 y) (* 1s0 r))))))))
     (run-gui::lcos "qswap"))
+  (run-gui::lcos "qswap")
+  (run-gui::lcos "qswap")
+  (run-gui::lcos "qswap")
+  (run-gui::lcos "qswank-cmd") ;; this will stop mma
 
   (let ((img-array (make-array (length (get-capture-sequence))))
 	(img-time (make-array (length (get-capture-sequence)))))
@@ -405,6 +411,7 @@
     (setf (ss :set-start-at-next-swap-buffer)
 	  ;; I need to tell if the camera should be started
 	  (list show-on-screen))
+    (defparameter *start-time* (get-internal-real-time))
     (sleep .1)
     (unless show-on-screen 
       (let ((count 0))
@@ -421,11 +428,12 @@
 	(clara:free-internal-memory))
       (setf (ss :image-array) img-array 
 	    (ss :image-time) img-time)))
-
+ 
+ 
   (setf run-gui::*do-display-queue* t))
 
 #+nil
-(acquire-stack :slices 10 :repetition 1)
+(acquire-stack :slices 1 :repetition 1)
 
 #+nil
 (dolist (e (get-lcos-sequence))     

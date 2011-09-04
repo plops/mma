@@ -671,11 +671,18 @@ acquisitor::*stack-state*
 (defparameter *bla* 0)
 (defparameter *bla-time* (get-internal-real-time))
 
+#+nil
 (get-internal-real-time)
 
+(defparameter *mma-state* 0)
 (defun reset-mma ()
-  (format t "I'm resetting the time ~a~%" (incf *bla*))
-  (setf *bla-time* (get-internal-real-time)))
+  (case *mma-state*
+    (0 (defparameter *mma-start-time* (get-internal-real-time)) 
+       (mma "start")       
+       (incf *mma-state*))
+    (1 (defparameter *mma-stop-time* (get-internal-real-time))
+       (mma "stop")
+       (incf *mma-state*))))
 #+nil
 (progn
   (defparameter *exec-time* (get-internal-real-time))
@@ -684,8 +691,19 @@ acquisitor::*stack-state*
   (- *bla-time* *exec-time*))
 ;; takes 5 to 19 ms
 
+
+#+nil
+(loop for i below 10 collect
+ (progn
+   (acquisitor::acquire-stack :slices 1 :repetition 1)
+   (sleep .1)
+   (let ((d (- *mma-stop-time* *mma-start-time*)))
+    (format t "~a~%" d)
+    d)))
+
 #+nil(reset-mma)
 
+#+nil
 (let ((a (get-internal-real-time)))
   (sleep 1)
   (- (get-internal-real-time) a))

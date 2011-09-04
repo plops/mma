@@ -297,6 +297,15 @@ swank_cmd(double*v)
   return 0.0;
 }
 
+double
+qswank_cmd(double*v)
+{
+  char*cmd=malloc(CMDLEN);
+  snprintf(cmd,CMDLEN,"swank-cmd");
+  push(cmd);
+  return 0.0;
+}
+
 
 // array that contains all functions that can be called from text interface
 struct{ 
@@ -323,6 +332,7 @@ struct{
 	{"toggle-queue",1,0,toggle_queue,"toggle displaying things from the queue"},
 	{"toggle-notify-mma",1,0,toggle_notify_mma,"if pid!=0 send stop start to mma process"},
 	{"swank-cmd",0,0,swank_cmd,"send a reset-mma call to the sawnk server"},
+	{"qswank-cmd",0,1,qswank_cmd,"send a reset-mma call to swank (in sync with lcos update)"},
 };
 
 
