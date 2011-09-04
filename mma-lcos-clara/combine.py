@@ -37,7 +37,8 @@ def py():
     print time.time()
     #c.SLM_SetStopMMA()
     #c.SLM_SetStartMMA()
-    
+
+"""
 external_fun=c_int.in_dll(c,"external_fun")
 SYNCFUNC = CFUNCTYPE(None)
 syncfunc=SYNCFUNC(py)
@@ -45,7 +46,6 @@ syncfunc=SYNCFUNC(py)
 lcos=threading.Thread(target=(lambda : init()))
 #lcos.start()
 
-"""
 c_int.in_dll(c,"frame_count").value=8
 external_fun.value=addressof(syncfunc)
 c.start_lcos_thread()
@@ -82,10 +82,11 @@ def drawfun():
     glClear(GL_COLOR_BUFFER_BIT)
     glLoadIdentity()
     glColor4d(1,1,1,1)
-    glTranslated(12,12,0)
+    #glTranslated(12,12,0)
     #glScaled(dat.shape[1],dat.shape[2],1)
-    glScaled(100,100,1)
+    glScaled(1280,1024,1)
     glColor3d(1,1,1,1)
+    glRectd(0,0,1,1)
     #time.sleep(1/10.0)
     glutSwapBuffers()
     count=count+1
@@ -100,11 +101,11 @@ def main():
     global window
     glutInit("")
     glutInitDisplayMode(GLUT_RGBA|GLUT_DOUBLE|GLUT_ALPHA)
-    glutInitWindowSize(640,480)
+    glutInitWindowSize(1280,1024)
     window=glutCreateWindow("test")
     glutDisplayFunc(draw)
     glutIdleFunc(draw)
-    initgl(640,480)
+    initgl(1280,1024)
     glutMainLoop()
 
 app=threading.Thread(target=(lambda : main()))
