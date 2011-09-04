@@ -251,11 +251,13 @@
 
 (defun next-position (time)
   (getf (first (remove-if #'(lambda (x) (< (getf x :start) time))
-			  (mapcar #'(lambda (x) (let ((y nil)) 
-					     (setf (getf y :start) (getf x :start)
-						   (getf y :pos) (getf x :pos))
-					     y)) 
-				  (remove-if-not #'(lambda (x) (eq :stage-move (getf x :type)))
+			  (mapcar #'(lambda (x) 
+				      (let ((y nil)) 
+					(setf (getf y :start) (getf x :start)
+					      (getf y :pos) (getf x :pos))
+					y)) 
+				  (remove-if-not #'(lambda (x) 
+						     (eq :stage-move (getf x :type)))
 						 (ss :seq)))))
 	:pos))
 #+nil
@@ -300,8 +302,12 @@
 (defun get-lcos-picture-sequence ()
  (let ((res nil))
   (dolist (images-at-z (mapcar 
-			(lambda (x) (mapcar (lambda (y) (getf y :content)) (getf x :lcos-seq)))
-			(remove-if-not (lambda (x) (eq :display (getf x :type))) (ss :seq))))
+			(lambda (x) (mapcar (lambda (y)
+					      (getf y :content))
+					    (getf x :lcos-seq)))
+			(remove-if-not (lambda (x) 
+					 (eq :display (getf x :type))) 
+				       (ss :seq))))
     (dolist (pic images-at-z) 
       (push pic res)))
   (reverse res)))
@@ -361,7 +367,6 @@
 
 (defun acquire-stack (&key (show-on-screen nil)
 		      (slices 10) (dz 1) (repetition 1))
-;  (run-gui::mma "stop")
   (store-images-into-mma)
   (unless show-on-screen 
     (setf run-gui::*do-capture* nil
@@ -395,13 +400,12 @@
 
   (let ((img-array (make-array (length (get-capture-sequence))))
 	(img-time (make-array (length (get-capture-sequence)))))
- ;   (run-gui::mma "start")
-    (run-gui::lcos "toggle-queue 1")
-    (setf (ss :set-start-at-next-swap-buffer) t)
-    (unless show-on-screen (clara:start-acquisition)) ;; start camera
-    
-    (start-move-thread) ;; I could start this in the opengl drawing loop
-    
+
+
+    (setf (ss :set-start-at-next-swap-buffer)
+	  ;; I need to tell if the camera should be started
+	  (list show-on-screen))
+    (sleep .1)
     (unless show-on-screen 
       (let ((count 0))
 	(loop while (and run-gui::*do-capture*
@@ -554,7 +558,13 @@ displayed on the LCoS. If there is no grating, return nil."
 	  (color 1 1 1)
 	  (rect (getf e :start) 21 (getf e :end) 41)))))
    
-   (when (ss :set-start-at-next-swap-buffer)
-     ;; this code has to be executed to synchronize stage with display
-     (setf (ss :set-start-at-next-swap-buffer) nil
-	    (ss :start) (get-internal-real-time)))))
+   (let ((s (ss :set-start-at-next-swap-buffer)))
+     (when s
+       (run-gui::lcos "toggle-queue 1")
+       (let ((show-on-screen (first s)))
+	 (unless show-on-screen ;; start camera
+	   (clara:start-acquisition))) 
+       (setf (ss :set-start-at-next-swap-buffer) nil
+	     ;; this code has to be executed to synchronize stage with display
+	     (ss :start) (get-internal-real-time))
+       (start-move-thread)))))
