@@ -33,7 +33,7 @@
   (defparameter *circ-buf-size*
     (val2 (clara:get-size-of-circular-buffer)))
   (acquisition-mode :run-till-abort)
-  (check (set-temperature -20)))
+  (check (set-temperature -55)))
 
 
 #+nil

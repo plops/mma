@@ -433,7 +433,7 @@
   (setf run-gui::*do-display-queue* t))
 
 #+nil
-(acquire-stack :slices 1 :repetition 1)
+(acquire-stack :slices 10 :repetition 1)
 
 #+nil
 (dolist (e (get-lcos-sequence))     

@@ -184,7 +184,7 @@
 			       (list .0     .0    .0 1.0)))))
     (gl:load-transpose-matrix (sb-ext:array-storage-vector a))))
 
-(defparameter *do-capture* nil)
+(defparameter *do-capture* nil) ;; optionally set *line* to new queue
 (defparameter *do-capture* t)
 (defparameter *do-display-queue* nil)
 (defparameter *do-display-queue* t)
@@ -255,7 +255,8 @@
        (free-internal-memory)))
  :name "capture")
 
-
+#+Nil
+(mma "start")
 
 (defun transpose-ub16 (img)
   "Transpose the image that comes from the Andor camera."
@@ -379,7 +380,7 @@
 	    (when e
 	      (gl:with-pushed-matrix
 		(let* ((tex (make-instance 'gui::texture16 :data e
-					   :scale 102s0 :offset 0.0077s0
+					   :scale 2002s0 :offset 0.0077s0
 					   )))
 		  (destructuring-bind (h w) (array-dimensions e)
 		    ;; current image
