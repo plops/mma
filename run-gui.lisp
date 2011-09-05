@@ -36,7 +36,7 @@
 
 (defvar *mma-chan* nil)
 (defvar *binary-fifo* nil)
-(+ 1 2)
+
 #+nil
 (progn
   (sb-thread:make-thread 
@@ -380,7 +380,7 @@
 	    (when e
 	      (gl:with-pushed-matrix
 		(let* ((tex (make-instance 'gui::texture16 :data e
-					   :scale 2002s0 :offset 0.0077s0
+					   :scale 202s0 :offset 0.0077s0
 					   )))
 		  (destructuring-bind (h w) (array-dimensions e)
 		    ;; current image

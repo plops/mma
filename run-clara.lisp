@@ -35,7 +35,7 @@
   (acquisition-mode :run-till-abort)
   (check (set-temperature -55)))
 
-
+;; to reset the usb: rmmod uhci_hcd ehci_hcd; modprobe uhci_hcd; modprobe ehci_hcd
 #+nil
 (get-temperature-f)
 #+nil

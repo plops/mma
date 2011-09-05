@@ -108,26 +108,16 @@
                 :content (make-exposure :accum-group 1)
 		:image-index image-index)
           res)
-    (push `(:type :mma
-		  :start ,time
-		  :end ,(+ time 15)
-		  :content ((:dark)))
-	  res)
-    (push `(:type :mma
-		  :start ,time
-		  :end ,(+ time 15)
-		  :content ((:dark)))
-	  res)
-    (push `(:type :mma
-		  :start ,time
-		  :end ,(+ time 15)
-		  :content ((:dark)))
-	  res)
-    (push `(:type :mma
-		  :start ,time
-		  :end ,(+ time 15)
-		  :content ((:dark)))
-	  res)
+    
+    #+nil
+    (dotimes (i 10)
+      (push `(:type :mma
+		    :start ,time
+		    :end ,(incf time 15)
+		    :content ((:dark)))
+	    res)
+      (incf time (* 2 frame-period)))
+    
 
     (loop for k below slices do
          (let ((cam nil))
@@ -228,7 +218,7 @@
 	   (ss :image-array) nil
 	   (ss :image-times) nil)))
 
-
+(defparameter *bl* (ss :seq))
 (prepare-grating-stack-acquisition :repetition 2)
 
 
