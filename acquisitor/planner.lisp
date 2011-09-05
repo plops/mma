@@ -108,7 +108,7 @@
                 :content (make-exposure :accum-group 1)
 		:image-index image-index)
           res)
-    
+    (incf time (* 2 frame-period))
     #+nil
     (dotimes (i 10)
       (push `(:type :mma
@@ -422,9 +422,26 @@
  
   (setf run-gui::*do-display-queue* t))
 
-#+nil
-(acquire-stack :slices 10 :repetition 1)
 
+
+#+nil
+(time
+ (loop for i below 20 do
+      (acquire-stack :slices 10 :repetition 1)
+      (sb-ext:run-program "/bin/sh" '("-c" "rm /dev/shm/o*.pgm"))
+      (dotimes (i (length (ss :image-array)))
+	;; store images
+	(vol::write-pgm-transposed 
+	 (format nil "/dev/shm/o~4,'0d.pgm" i)
+	 (vol:normalize-2-sf/ub8
+	  (vol:convert-2-ub16/sf-mul (aref (ss :image-array) i)))))
+      (sb-ext:run-program "/bin/sh" 
+			  (list "-c" 
+				(format nil 
+					"montage -tile 4x /dev/shm/o*.pgm /dev/shm/~3,'0d.jpg" i)))))
+
+#+nil
+(defparameter *bl* (ss :seq))
 #+nil
 (dolist (e (get-lcos-sequence))     
   (unless (eq e :dark)
