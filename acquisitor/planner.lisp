@@ -97,6 +97,7 @@
 (defun plan-full-grating-stack (&key (slices 10) (phases 3) (repetition 2) (start-pos 0) (dz 1)
 				(frame-period (/ 60))
 				(start-time 0d0) (stage-settle-duration 20)
+				(extra-mma-images 0)
 				(lcos-lag 0) (grating-width 3))
   (let ((res nil)
         (pos start-pos)
@@ -109,8 +110,8 @@
 		:image-index image-index)
           res)
     (incf time (* 2 frame-period))
-    #+nil
-    (dotimes (i 10)
+
+    (dotimes (i extra-mma-images)
       (push `(:type :mma
 		    :start ,time
 		    :end ,(incf time 15)
@@ -126,11 +127,14 @@
                       :lcos-seq ;; at each z position there are a number of images to be displayed 
                       (let ((lcos nil))
                         (loop for e in (let ((rlcos nil))
-					 (push (make-exposure :accum-group 1) rlcos)
+					 (push (make-exposure :accum-group 1 
+							      :lcos '((:disk 200 225 280))
+							      :mma '((:bright))) rlcos)
 					 (dotimes (j repetition)
 					   (dotimes (phase phases)
 					     (push (make-exposure
-						    :lcos `((:grating-disk 325 225 225 
+						    :lcos '((:disk 200 225 280))
+						    #+nil `((:grating-disk 325 225 225 
 									   ,phase ,phases ,grating-width))
 						    :mma `((:bright))
 						    :accum-group (encode-phase-hash k phase))
@@ -192,13 +196,16 @@
 
 
 
-(defun prepare-grating-stack-acquisition (&key (slices 10) (dz 1) (repetition 1) (phases 3) (width 3))
+(defun prepare-grating-stack-acquisition (&key (slices 10) (dz 1) (repetition 1)
+					  (extra-mma-images 0)
+					  (phases 3) (width 3))
   (when (ss :wait-move-thread) 
     (close-move-thread))
   (let* ((start-pos (focus:get-position))
 	 (seq (plan-full-grating-stack
 	       :slices slices
 	       :phases phases
+	       :extra-mma-images extra-mma-images
 	       :repetition repetition
 	       :frame-period (/ 1000 60)
 	       :start-pos start-pos :dz dz
@@ -356,6 +363,7 @@
 
 
 (defun acquire-stack (&key (show-on-screen nil)
+		      (extra-mma-images 0)
 		      (slices 10) (dz 1) (repetition 1))
   (store-images-into-mma)
   (unless show-on-screen 
@@ -369,6 +377,7 @@
 
   (prepare-grating-stack-acquisition :slices slices :dz dz 
 				     :repetition repetition
+				     :extra-mma-images extra-mma-images
 				     :phases 3 :width 3)
   (defparameter run-gui::*mma-state* 0)
   (run-gui::lcos "qswank-cmd") ;; this will start mma
@@ -426,19 +435,20 @@
 
 #+nil
 (time
- (loop for i below 20 do
-      (acquire-stack :slices 10 :repetition 1)
-      (sb-ext:run-program "/bin/sh" '("-c" "rm /dev/shm/o*.pgm"))
-      (dotimes (i (length (ss :image-array)))
-	;; store images
-	(vol::write-pgm-transposed 
-	 (format nil "/dev/shm/o~4,'0d.pgm" i)
-	 (vol:normalize-2-sf/ub8
-	  (vol:convert-2-ub16/sf-mul (aref (ss :image-array) i)))))
-      (sb-ext:run-program "/bin/sh" 
-			  (list "-c" 
-				(format nil 
-					"montage -tile 4x /dev/shm/o*.pgm /dev/shm/~3,'0d.jpg" i)))))
+ (loop for j from 0 below 5 do
+      (loop for i below 10 do
+       (acquire-stack :slices 10 :repetition 1)
+	   (sb-ext:run-program "/bin/sh" '("-c" "rm /dev/shm/o*.pgm"))
+	   (dotimes (i (length (ss :image-array)))
+	     ;; store images
+	     (vol::write-pgm-transposed 
+	      (format nil "/dev/shm/o~4,'0d.pgm" i)
+	  (vol:normalize-2-sf/ub8
+	   (vol:convert-2-ub16/sf-mul (aref (ss :image-array) i)))))
+	   (sb-ext:run-program "/bin/sh" 
+			       (list "-c" 
+				     (format nil 
+					     "montage -tile 4x /dev/shm/o*.pgm /dev/shm/~3,'0d-~3,'0d.jpg" j i))))))
 
 #+nil
 (defparameter *bl* (ss :seq))
