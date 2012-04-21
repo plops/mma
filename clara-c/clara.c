@@ -25,25 +25,27 @@ init_clara()
   C(GetCameraHandle(n-1,&handle));
   C(SetCurrentCamera(handle));
   C(Initialize("/usr/local/etc/andor"));
-  C(SetTriggerMode(1 /*external*/));
-  C(SetExposureTime(.01521));
+  // C(SetTriggerMode(1 /*external*/));
+  C(SetTriggerMode(0 /*internal*/));
+  C(SetExposureTime(.001));
   C(SetReadMode(4 /*image*/));
   C(SetAcquisitionMode(1 /*single scan*/));
   C(CoolerON());
   C(SetADChannel(1 /*fast*/));
   C(SetFastExtTrigger(1));
   C(SetFrameTransferMode(1));
-  int h=432, w=412;
+  int h=512, w=512;
   clara_h=h;
   clara_w=w;
-  C(SetIsolatedCropMode(1,h,w,1,1));
+  //C(SetIsolatedCropMode(1,h,w,1,1));
+  C(SetImage(1,1,1,w,1,h));
   C(GetSizeOfCircularBuffer(&clara_circ_buf_size));
   clara_buf=malloc(sizeof(*clara_buf)*
 		   h*w*clara_circ_buf_size);
   if(!clara_buf)
     printf("can't allocate memory for pictures\n");
-  C(SetAcquisitionMode(5 /*run till abort*/));
-  C(SetTemperature(-55));
+  //C(SetAcquisitionMode(5 /*run till abort*/));
+  C(SetTemperature(-15));
 }
 
 void
@@ -90,10 +92,12 @@ main()
 {
   init_clara();
   C(PrepareAcquisition());
-  C(StartAcquisition());
+  
   int i;
-  for(i=0;i<100;i++)
+  for(i=0;;i++){
+    C(StartAcquisition());
     capture_clara();
+  }
   C(AbortAcquisition());
   C(FreeInternalMemory());
   uninit_clara();
