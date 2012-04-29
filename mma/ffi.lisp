@@ -53,7 +53,7 @@
 
 
 (in-package :ipms-ffi)
-(defparameter *library* "/home/martin/cyberpower-mit/mma-essentials-0209/libIPMS_SLM.so.1.0.0") 
+(defparameter *library* "~/stage/mma-essentials-0209/libIPMS_SLM.so.1.0.0") 
 (load-shared-object *library*)
 #+nil
 (unload-shared-object *library*) 

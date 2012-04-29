@@ -1,4 +1,4 @@
-(setf asdf:*central-registry* (list "/home/martin/0505/mma/"))
+(setf asdf:*central-registry* (list "~/stage/mma/"))
 (eval-when (:compile-toplevel :execute :load-toplevel)
   (require :mma))
 
@@ -33,27 +33,28 @@
 
 #+nil
 (status)
-
+	  
 #+nil
-(load-configuration "/home/martin/3ini")
+(load-configuration "/home/grml/stage/mma-essentials-0209/800803.ini")
 
 
 #+nil
 (load-calibration-data 
- "/home/martin/24811567.cal"
- #+nil "/home/martin/cyberpower-mit/mma-essentials-0209/VC2481_15_67_2011-02-01_0-250nm_Rand7_Typ1.cal")
+ "/home/grml/stage/mma-essentials-0209/VC2481_15_67_2011-02-01_0-250nm_Rand7_Typ1.cal")
 
+
+(defparameter *width* 10000s0)
 
 #+nil
 (set-extern-ready (+ 20s0 0s0)
-		  (- 16000s0 20s0)) ;; should start 20us later than deflection
+		  (- *width* 20s0)) ;; should start 20us later than deflection
 
 
 #+nil
-(set-deflection-phase 0s0 16000s0)
+(set-deflection-phase 0s0 *width*)
 
 #+nil
-(mma::set-cycle-time 160s0)
+(mma::set-cycle-time (+ .01 (* 2 *width*)))
 
 #+nil
 (mma:set-nominal-deflection-nm 118.25)
@@ -66,7 +67,7 @@
 (set-power-on)
 
 #+nil
-(fill-constant 90)
+(fill-constant 4090)
 
 #+nil
 (mma::set-stop-mma)
@@ -85,7 +86,7 @@
        (m (make-array (list n n) :element-type '(unsigned-byte 12))))
   (dotimes (j n)
     (dotimes (i n)
-      (setf (aref m j i) (*  #+nil  (* (mod i 2) #+nil (mod j 2)) 4095))))
+      (setf (aref m j i) (*  (* (mod i 2) #+nil (mod j 2)) 4095))))
   (mma:draw-array-cal m :pic-number 1)
   nil)
 

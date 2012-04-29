@@ -116,8 +116,8 @@
 	     (netmask "255.255.255.0")
 	     (gateway "0.0.0.0")
 	     (port 4001)
-	     (config "/home/martin/3ini")
-	     (calibration "/home/martin/24811567.cal")
+	     (config "~/stage/mma-essentials-0209/800803.ini")
+	     (calibration "~/stage/mma-essentials-0209/VC2481_15_67_2011-02-01_0-250nm_Rand7_Typ1.cal24811567.cal")
 	     (width-ms (- 16s0 .522)))
   (check (register-board id
 			 board-ip
