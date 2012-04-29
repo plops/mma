@@ -257,8 +257,8 @@ load(double*args)
 { // read bytes from binary input fifo
   int bytes=(int)args[0];
   int bytes_to_read=min(256*256*2,bytes);
-  int n=fread(buf,1,bytes_to_read,fifofile);
-  printf("(mma-load :bytes %d :bytes-expected %d)\n",n,bytes_to_read);
+  int n=0; //=fread(buf,1,bytes_to_read,fifofile);
+  printf("(fifo doesnt work now! mma-load :bytes %d :bytes-expected %d)\n",n,bytes_to_read);
   fflush(stdout);
   return 1.0*n;
 }
@@ -434,7 +434,7 @@ main()
 {
   buf=malloc(N*N*2);
   logfile=fopen("/dev/shm/mma.log","w");
-  fifofile=fopen("/home/martin/0505/mma/binary_fifo","r");
+  // fifofile=fopen("/home/martin/0505/mma/binary_fifo","r");
   assert(buf);
   int i;
   for(i=0;i<NN;i++)
@@ -456,13 +456,13 @@ main()
   
   if(isnan(status(0)))
     goto disconnect;
-  
-  if(0!=SLM_LoadConfiguration("/home/martin/cyberpower-mit/mma-essentials-0209/800803_dmdl6_20110215.ini"
+
+  if(0!=SLM_LoadConfiguration("/home/grml/stage/mma-essentials-0209/800803.ini"
 			      )){
     e("config");
     goto disconnect;
   }
-  if(0!=SLM_LoadCalibrationData("/home/martin/mma-essentials-0209/VC2481_15_67_2011-02-01_0-250nm_Rand7_Typ1.cal")){
+  if(0!=SLM_LoadCalibrationData("/home/grml/stage/mma-essentials-0209/VC2481_15_67_2011-02-01_0-250nm_Rand7_Typ1.cal")){
     e("calib");
     goto disconnect;
   }
@@ -561,6 +561,6 @@ main()
     e("disconnect");
   printf("bye!\n");
   fclose(logfile);
-  fclose(fifofile);
+  //fclose(fifofile);
   return 0;
 }
