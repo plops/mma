@@ -132,7 +132,7 @@ mma_init()
     goto disconnect;
   
   // the ini file must contain the right board id
-  if(0!=SLM_LoadConfiguration("/home/martin/cyberpower-mit/mma-essentials-0209/800803_dmdl6_20110215.ini"
+  if(0!=SLM_LoadConfiguration("/home/grml/stage/mma-essentials-0209/800803.ini"
 			      )){
     e("config");
     goto disconnect;
@@ -143,14 +143,14 @@ mma_init()
   // if the wrong calibration file is used, a matrix can be run with
   // too high voltages which will destroy the mirrors.
   
-  if(0!=SLM_LoadCalibrationData("/home/martin/mma-essentials-0209/VC2481_15_67_2011-02-01_0-250nm_Rand7_Typ1.cal")){
+  if(0!=SLM_LoadCalibrationData("/home/grml/stage/mma-essentials-0209/VC2481_15_67_2011-02-01_0-250nm_Rand7_Typ1.cal")){
     e("calib");
     goto disconnect;
   }
   // user ready should start 20us after deflection phase and go low at
   // the same time 
   // delay is between trigger in and deflection is 840 us
-  float d=20.,width=16.;
+  float d=20.,width=10.;
   if(0!=SLM_SetDeflectionPhase(0.,width*1000.)){
     e("deflection");
     goto disconnect;

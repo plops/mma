@@ -15,7 +15,7 @@ FILE*fifofile;
 
 #define len(x) (sizeof(x)/sizeof(x[0]))
 #define e(q) do{fprintf(logfile,"error in file %s:%d in function %s, while calling %s\n",__FILE__,__LINE__,__FUNCTION__,q);fflush(logfile);}while(0)
-#define NAN __builtin_nan("")
+#define MYNAN __builtin_nan("")
 enum{
   CMDLEN=100, // maximum length of command strings
   MAXARGS=3,  // maximum number of arguments for a function
@@ -52,7 +52,7 @@ status(double*ignore)
   unsigned int stat,error;
   if(0!=SLM_ReadStatus(&stat,&error)){
     e("read-status");
-    return NAN;
+    return MYNAN;
   }
   printf("status 0x%x error 0x%x\n",stat,error);
   fflush(stdout);
@@ -83,7 +83,7 @@ img(double*params)
   RETURN_TIME(
 	      if(0!=SLM_WriteMatrixData(picture_nr,3,buf,N*N)){
 		printf("error upload-image\n");
-		return NAN;
+		return MYNAN;
 	      }
 	      );
 }
@@ -102,7 +102,7 @@ set_picture_sequence(double*params)
   RETURN_TIME(
 	      if(0!=SLM_SetPictureSequence(picture_nr,last_picture_p,ready_out_p)){
 		e("set-picture-sequence");
-		return NAN;
+		return MYNAN;
 	      });
 }
 
@@ -143,7 +143,7 @@ extern_trigger(double*ignore)
   (void)ignore;
   if(0!=SLM_EnableExternStart()){
     e("enable extern start");
-    return NAN;
+    return MYNAN;
   }
   return 0.0;
 }
@@ -155,7 +155,7 @@ intern_trigger(double*ignore)
   RETURN_TIME(
 	      if(0!=SLM_DisableExternStart()){
 		e("disable extern start");
-		return NAN;
+		return MYNAN;
 	      }
 	      );
 }
@@ -166,7 +166,7 @@ set_cycle_time(double*args)
   double time_ms=args[0];
   if(0!=SLM_SetCycleTime(time_ms)){
     e("cycle time");
-    return NAN;
+    return MYNAN;
   }
   return 0.0;
 }
@@ -177,7 +177,7 @@ start(double*ignore)
   (void)ignore;
   if(0!=SLM_SetStartMMA()){
     e("start");
-    return NAN;
+    return MYNAN;
   }
   return 0.0;
 }
@@ -188,7 +188,7 @@ stop(double*ignore)
   (void)ignore;
   if(0!=SLM_SetStopMMA()){
     e("stop");
-    return NAN;
+    return MYNAN;
   }
   return 0.0;
 }
@@ -225,7 +225,7 @@ deflection(double*args)
   // args contains one value (target wavelength/4)
   if(0!=SLM_SetParameter(1001,args,4)){
     e("set parameter 1001");
-    return NAN;
+    return MYNAN;
   }
   return 0.0;
 }
@@ -236,7 +236,7 @@ off(double*ignore)
   (void)ignore;
   if(0!=SLM_SetPowerOff()){
     e("power off");
-    return NAN;
+    return MYNAN;
   }
   return 0.0;
 }
@@ -247,7 +247,7 @@ on(double*ignore)
   (void)ignore;
   if(0!=SLM_SetPowerOn()){
     e("power on");
-    return NAN;
+    return MYNAN;
   }
   return 0.0;
 }
@@ -270,11 +270,11 @@ frame_voltage (double*args)
 
   if(0!=SLM_SetVoltage(SLM_SMART_IDX_VFRAME_F,deflection)){
     e("set voltage vframe deflection phase");
-    return NAN;
+    return MYNAN;
   }
   if(0!=SLM_SetVoltage(SLM_SMART_IDX_VFRAME_L,load)){
     e("set voltage vframe load phase");
-    return NAN;
+    return MYNAN;
   }
   return 0.0;
 }
@@ -286,7 +286,7 @@ get_temperature(double *args)
   float temp;
   if(0!=SLM_GetMMATemperature(&temp)){
     e("get mma temperature");
-    return NAN;
+    return MYNAN;
   }
   return 1.0*temp;
 }
@@ -297,7 +297,7 @@ set_temperature(double *args)
   float temp=(float)args[0];
   if(0!=SLM_SetMMATemperature(&temp)){
     e("set mma temperature");
-    return NAN;
+    return MYNAN;
   }
   return 1.0*temp;
 }
@@ -374,7 +374,7 @@ parse_name(char*tok)
       // printf("+%s=%d+\n",tok,fun_index);
     }else{
       printf("error, expected function name\n");
-      fflush(stdout)
+      fflush(stdout);
       return -1;
     }
   }else{
@@ -392,12 +392,12 @@ parse_line(char*line)
 {
   char *search=" ",*tok;
   if(!line)
-    return NAN;
+    return MYNAN;
   tok=strtok(line,search);
 
   int fun_index=parse_name(tok);
   if(fun_index<0)
-    return NAN;
+    return MYNAN;
 
   int arg_num=cmd[fun_index].args;
   int i;
@@ -406,20 +406,20 @@ parse_line(char*line)
     tok=strtok(0,search);
     if(!tok){
       printf("error, expected an argument");
-      return NAN;
+      return MYNAN;
     }
     if(isfloatchar(tok[0])){
 	char*endptr;
 	double d=strtod(tok,&endptr);
 	if(endptr==tok){
 	  printf("error, couldn't parse double\n");
-	  return NAN;
+	  return MYNAN;
 	}else
 	  args[i]=d;
 	//printf("%g\n",d);
     }else{
       printf("error, expected digit or .+- but found %c\n",tok[0]);
-      return NAN;
+      return MYNAN;
     }   
   }
   fprintf(logfile,"%llu running %s\n",cmd_number++,cmd[fun_index].name);

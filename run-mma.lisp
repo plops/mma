@@ -67,13 +67,42 @@
 (set-power-on)
 
 #+nil
-(fill-constant 4090)
+(fill-constant 90)
+#+nil
+(progn
+  (draw-grating)
+  nil)
 
+#+nil
+(defun fill-ring (value &key (pic-number 1) (cx 128) (cy 128))
+  (declare (type (unsigned-byte 16) value)
+	   (type (integer 1 1023) pic-number))
+  (let ((a (make-array (list 256 256) 
+		       :element-type '(unsigned-byte 16)
+		       :initial-element value)))
+    (destructuring-bind (h w) (array-dimensions a)
+      (dotimes (j h)
+	(dotimes (i w)
+	  (let* ((x (* 2.0 (/ w) (- i (/ w 2) cx)))
+		 (y (* 2.0 (/ h) (- j (/ h 2) cy)))
+		 (r (sqrt (+ (* x x) (* y y)))))
+	    (setf (aref a i j) 
+		  (if (< r .6) value 
+		      (if (= 0 (mod j 2))
+			  #xffff
+			  #x0000)))))))
+    (write-data a :pic-number pic-number)
+    (check (set-picture-sequence pic-number
+				 pic-number
+				 1))))
+
+#+nil
+(fill-ring 0)
 #+nil
 (mma::set-stop-mma)
 
 #+nil
-(mma::set-extern-trigger t)
+(mma::set-extern-trigger nil)
 
 #+nil
 (mma::set-start-mma)

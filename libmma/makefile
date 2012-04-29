@@ -1,6 +1,6 @@
 CFLAGS=-ggdb3 -O0 -Wall -Wextra 
-CC=gcc-4.3
-IPMSLIB=/home/martin/mma-essentials-0209/
+CC=gcc
+IPMSLIB=/home/grml/stage/mma-essentials-0209/
 # note that the option -Wl,-rpath forces the linker to store the
 # directory containing the libIPMS_SLM.so library. However, normally
 # one installs the .so file into /usr/lib and doesn't have to bother
