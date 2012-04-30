@@ -57,7 +57,7 @@
 (mma::set-cycle-time (+ .01 (* 2 *width*)))
 
 #+nil
-(mma:set-nominal-deflection-nm 118.25)
+(mma:set-nominal-deflection-nm 133s0)
 
 #+nil
 (let ((cmd "STM#DBE " ))
@@ -67,45 +67,55 @@
 (set-power-on)
 
 #+nil
-(fill-constant 90)
+(fill-constant 4090 :pic-number 2)
 #+nil
 (progn
   (draw-grating)
   nil)
 
-#+nil
 (defun fill-ring (value &key (pic-number 1) (cx 128) (cy 128))
   (declare (type (unsigned-byte 16) value)
 	   (type (integer 1 1023) pic-number))
-  (let ((a (make-array (list 256 256) 
-		       :element-type '(unsigned-byte 16)
-		       :initial-element value)))
-    (destructuring-bind (h w) (array-dimensions a)
-      (dotimes (j h)
-	(dotimes (i w)
-	  (let* ((x (* 2.0 (/ w) (- i (/ w 2) cx)))
-		 (y (* 2.0 (/ h) (- j (/ h 2) cy)))
-		 (r (sqrt (+ (* x x) (* y y)))))
-	    (setf (aref a i j) 
-		  (if (< r .6) value 
-		      (if (= 0 (mod j 2))
-			  #xffff
-			  #x0000)))))))
+  (let* ((n 256)
+	 (nh (floor n 2))
+	 (a (make-array (list n n) 
+			:element-type '(unsigned-byte 16)
+			:initial-element value)))
+    (dotimes (j n)
+      (dotimes (i n)
+	(let* ((x (* 2.0 (/ n) (- i nh cx)))
+	       (y (* 2.0 (/ n) (- j nh cy)))
+	       (r (sqrt (+ (* x x) (* y y)))))
+	  (setf (aref a i j) 
+		(if (< r 1.)
+		    value 
+		    0)))))
     (write-data a :pic-number pic-number)
     (check (set-picture-sequence pic-number
 				 pic-number
 				 1))))
 
+
 #+nil
-(fill-ring 0)
+(time 
+ (fill-ring 4060 :pic-number 1))
 #+nil
 (mma::set-stop-mma)
 
 #+nil
-(mma::set-extern-trigger nil)
+(mma::set-extern-trigger t)
 
 #+nil
 (mma::set-start-mma)
+
+#+nil
+(mma::get-mma-temperature)
+#+nil
+(mma::set-mma-temperature 22s0)
+#+nil
+(mma::switch-peltier-on)
+#+nil
+(mma::switch-peltier-off)
 
 #+nil
 (mma:select-pictures 0 :n 1 :ready-out-needed t)
