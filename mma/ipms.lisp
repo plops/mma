@@ -54,14 +54,13 @@
 
 (defun write-data (buf &key (pic-number 1))
   "Write a 256x256 unsigned-short buffer to the device."
-  (declare ((simple-array (unsigned-byte 16) (256 256)) buf)
-	   (values null &optional))
+  (declare ((simple-array (unsigned-byte 16) (256 256)) buf))
   (let ((buf1 (sb-ext:array-storage-vector buf)))
     (sb-sys:with-pinned-objects (buf)
       (check
        (write-matrix-data pic-number 3 (sb-sys:vector-sap buf1) 
 			  (* 2 (length buf1))))))
-  nil)
+  (values))
 
 (defun fill-constant (value &key (pic-number 1))
   (declare (type (unsigned-byte 16) value)

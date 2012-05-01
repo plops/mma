@@ -38,9 +38,14 @@
 (load-configuration "/home/grml/stage/mma-essentials-0209/800803.ini")
 
 
+
 #+nil
 (load-calibration-data 
  "/home/grml/stage/mma-essentials-0209/VC2481_15_67_2011-02-01_0-250nm_Rand7_Typ1.cal")
+
+(check (set-voltage +volt-frame-f+ 15.0s0))
+
+(check (set-voltage +volt-frame-l+ 15.0s0))
 
 
 (defparameter *width* 10000s0)
@@ -55,58 +60,19 @@
 
 #+nil
 (mma::set-cycle-time (+ .01 (* 2 *width*)))
+#+nil
+(mma::set-cycle-time 33s0)
+
+#+nil
+(mma::enable-extern-start)
 
 #+nil
 (mma:set-nominal-deflection-nm 133s0)
 
+
 #+nil
 (let ((cmd "STM#DBE " ))
   (ipms-ffi::service-command "SEND#SRV" cmd (length cmd)))
-
-#+nil
-(set-power-on)
-
-#+nil
-(fill-constant 4090 :pic-number 2)
-#+nil
-(progn
-  (draw-grating)
-  nil)
-
-(defun fill-ring (value &key (pic-number 1) (cx 128) (cy 128))
-  (declare (type (unsigned-byte 16) value)
-	   (type (integer 1 1023) pic-number))
-  (let* ((n 256)
-	 (nh (floor n 2))
-	 (a (make-array (list n n) 
-			:element-type '(unsigned-byte 16)
-			:initial-element value)))
-    (dotimes (j n)
-      (dotimes (i n)
-	(let* ((x (* 2.0 (/ n) (- i nh cx)))
-	       (y (* 2.0 (/ n) (- j nh cy)))
-	       (r (sqrt (+ (* x x) (* y y)))))
-	  (setf (aref a i j) 
-		(if (< r 1.)
-		    value 
-		    0)))))
-    (write-data a :pic-number pic-number)
-    (check (set-picture-sequence pic-number
-				 pic-number
-				 1))))
-
-
-#+nil
-(time 
- (fill-ring 4060 :pic-number 1))
-#+nil
-(mma::set-stop-mma)
-
-#+nil
-(mma::set-extern-trigger t)
-
-#+nil
-(mma::set-start-mma)
 
 #+nil
 (mma::get-mma-temperature)
@@ -116,6 +82,49 @@
 (mma::switch-peltier-on)
 #+nil
 (mma::switch-peltier-off)
+
+
+#+nil
+(set-power-on)
+
+#+nil
+(progn ;; write a picture
+ (let* ((n 256)
+	(buf (make-array (list n n) :element-type '(unsigned-byte 16)
+			 :initial-element 0))
+	(buf1 (sb-ext:array-storage-vector buf)))
+   (dotimes (i (/ n 2))
+     (dotimes (j n)
+       (setf (aref buf j i)
+	     (if (= 0 (mod i 2))
+		 4095
+		 0))))
+   (sb-sys:with-pinned-objects (buf)
+     (write-matrix-data 1 3 (sb-sys:vector-sap buf1) 
+			(* n n)))))
+#+nil
+(mma::set-picture-sequence 1 0 1)
+#+nil
+(mma::set-picture-sequence 1 1 1)
+
+#+nil
+(mma::set-start-mma)
+#+nil
+(status)
+#+nil
+(multiple-value-bind (a b c)
+    (read-status)
+  (format nil "#x~x%d" b))
+#+nil
+(mma::set-stop-mma)
+#+nil
+(mma::disable-extern-start)
+#+nil
+(mma::set-extern-trigger t)
+
+#+nil
+(mma::set-start-mma)
+
 
 #+nil
 (mma:select-pictures 0 :n 1 :ready-out-needed t)
