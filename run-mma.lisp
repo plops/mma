@@ -48,7 +48,7 @@
 (check (set-voltage +volt-frame-l+ 15.0s0))
 
 
-(defparameter *width* 10000s0)
+(defparameter *width* (+ 188s0 10000s0))
 
 #+nil
 (set-extern-ready (+ 20s0 0s0)
