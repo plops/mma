@@ -43,8 +43,10 @@
 (load-calibration-data 
  "/home/grml/stage/mma-essentials-0209/VC2481_15_67_2011-02-01_0-250nm_Rand7_Typ1.cal")
 
+#+nil
 (check (set-voltage +volt-frame-f+ 15.0s0))
 
+#+nil
 (check (set-voltage +volt-frame-l+ 15.0s0))
 
 
@@ -100,14 +102,12 @@
 	      (y (* (- j nh) (/ 2s0 n)))
 	      (r (sqrt (+ (* x x) (* y y)))))
 	 (setf (aref buf j i)
-	      (if (< r .9)
+	      (if (< r .3)
 		  4095
 		  0)))))
    (sb-sys:with-pinned-objects (buf)
      (write-matrix-data 1 3 (sb-sys:vector-sap buf1) 
 			(* n n)))))
-#+nil
-(mma::set-picture-sequence 1 0 1)
 #+nil
 (mma::set-picture-sequence 1 1 1)
 
