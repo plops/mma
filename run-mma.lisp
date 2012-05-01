@@ -76,7 +76,7 @@
 
 #+nil
 (mma::get-mma-temperature)
-#+nil
+#+nil2
 (mma::set-mma-temperature 22s0)
 #+nil
 (mma::switch-peltier-on)
@@ -90,15 +90,19 @@
 #+nil
 (progn ;; write a picture
  (let* ((n 256)
+	(nh (floor n 2))
 	(buf (make-array (list n n) :element-type '(unsigned-byte 16)
 			 :initial-element 0))
 	(buf1 (sb-ext:array-storage-vector buf)))
-   (dotimes (i (/ n 2))
+   (dotimes (i n)
      (dotimes (j n)
-       (setf (aref buf j i)
-	     (if (= 0 (mod i 2))
-		 4095
-		 0))))
+       (let* ((x (* (- i nh) (/ 2s0 n)))
+	      (y (* (- j nh) (/ 2s0 n)))
+	      (r (sqrt (+ (* x x) (* y y)))))
+	 (setf (aref buf j i)
+	      (if (< r .9)
+		  4095
+		  0)))))
    (sb-sys:with-pinned-objects (buf)
      (write-matrix-data 1 3 (sb-sys:vector-sap buf1) 
 			(* n n)))))
