@@ -3,37 +3,39 @@
   (require :asdf)
   (setf asdf:*central-registry* 
 	(union asdf:*central-registry* 
-	       '("/home/martin/0505/mma/")))
+	       '("/home/martin/stage/mma/")))
   (require :clara))
 (defpackage :run-clara
   (:use :cl :clara))
 (in-package :run-clara)
-(progn
-  (check 
-    (set-current-camera
-     (val2 (get-camera-handle 
-	    (1- (val2 (get-available-cameras)))))))
+#+nil
+(time33
+ (progn ;; open camera takes 10s
+   (check 
+     (set-current-camera
+      (val2 (get-camera-handle 
+	     (1- (val2 (get-available-cameras)))))))
   
-  (check
-    (initialize "/usr/local/etc/andor"))
-  (trigger-mode :external)
-  (set-exposure-time .01521)
-  (read-mode :image)
-  (acquisition-mode :single-scan)
-  (cooler-on)
-  #+nil (check
-    (set-image 1 1
-	       1 1392
-	       1 1040))
-  (set-ad-channel 1) ;; 1 is the fast one
-  (check (clara::set-fast-external-trigger 1))
-  (check (set-frame-transfer-mode 1))
-  (check
-    (clara::set-isolated-crop-mode 1 432 412 1 1))
-  (defparameter *circ-buf-size*
-    (val2 (clara:get-size-of-circular-buffer)))
-  (acquisition-mode :run-till-abort)
-  (check (set-temperature -55)))
+   (check
+     (initialize "/usr/local/etc/andor"))
+   (trigger-mode :internal)
+   (set-exposure-time .01521)
+   (read-mode :image)
+   (acquisition-mode :single-scan)
+   (cooler-on)
+   (check
+     (set-image 1 1
+		1 1392
+		1 1040))
+   (set-ad-channel 1) ;; 1 is the fast one
+   (check (clara::set-fast-external-trigger 1))
+   (check (set-frame-transfer-mode 1))
+   #+nil (check
+	   (clara::set-isolated-crop-mode 1 432 412 1 1))
+   (defparameter *circ-buf-size*
+     (val2 (clara:get-size-of-circular-buffer)))
+   (acquisition-mode :run-till-abort)
+   (check (set-temperature -55))))
 
 ;; to reset the usb: rmmod uhci_hcd ehci_hcd; modprobe uhci_hcd; modprobe ehci_hcd
 #+nil
@@ -88,13 +90,14 @@
 ;; (clara:status)
 
 
-;; (trigger-mode :internal)
+#+nil
+(trigger-mode :internal)
 ;; (trigger-mode :external)
 
 #+nil
 (clara:uninit)
 
-;; (format t "~a~%" (clara::capabilities))
+#+nil (format t "~a~%" (clara::capabilities))
 
 ;; set-accumulation-cycle-time
 ;; set-number-accumulations (that's just in memory)
@@ -113,20 +116,24 @@
       (loop while (not (eq 'clara::DRV_IDLE
 			   (lookup-error (val2 (get-status)))))
 	 do
+	   (format t ".~%")
 	   (sleep .01))
       (sb-sys:with-pinned-objects (img)
 	(get-acquired-data16 sap (length img1)))
       (check
 	(free-internal-memory)))
    img))
-
+#+nil
+(check
+ (start-acquisition))
+#+nil
+(check
+ (abort-acquisition))
 #+nil
 (reduce #'max (sb-ext:array-storage-vector *blub*))
 
 #+nil
 (lookup-error (val2 (get-status)))
-
-
 
 #+nil
 (progn

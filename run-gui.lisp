@@ -1,12 +1,11 @@
-
 (eval-when (:compile-toplevel)
   (progn
     (sb-posix:setenv "DISPLAY" ":0" 1)
     (sb-posix:setenv "__GL_SYNC_TO_VBLANK" "1" 1)
-    (sb-ext:run-program "/usr/bin/xset" '("s" "off"))
+    (sb-ext:run-program "/usr/bin/xset" '("s" "off")) 
     (sb-ext:run-program "/usr/bin/xset" '("-dpms"))
 
-    (setf asdf:*central-registry* (list "/home/martin/0505/mma/"))
+    (setf asdf:*central-registry* (list "/home/martin/stage/mma/"))
     (ql:quickload "cl-opengl")))
 (eval-when (:compile-toplevel)
   (require :gui)
@@ -14,14 +13,16 @@
   ;; (require :andor3)
   (require :clara)
   ;; (require :mma)
-  (require :focus)
+  #+nil (require :focus)
   (require :sb-concurrency)
   ;; (require :cl-glut)
   (require :acquisitor)
   ) 
+
 (defpackage :run-gui
   (:use :cl :gl #-clara :clara))
 (in-package :run-gui)
+#+nil
 
 #+nil
 (unless focus::*fd*

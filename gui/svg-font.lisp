@@ -2,7 +2,7 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *numerals*
-    (let ((doc (cxml:parse-file "/home/martin/0505/mma/gui/numerals.svg" 
+    (let ((doc (cxml:parse-file "/home/martin/stage/mma/gui/numerals.svg" 
 				(cxml-dom:make-dom-builder))))
       (loop for i below 10 collect
 	   (list i 
