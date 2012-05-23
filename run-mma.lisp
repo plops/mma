@@ -35,13 +35,13 @@
 (status)
 	  
 #+nil
-(load-configuration "/home/grml/stage/mma-essentials-0209/800803.ini")
+(load-configuration "/home/martin/stage/mma-essentials-0209/800803.ini")
 
 
 
 #+nil
 (load-calibration-data 
- "/home/grml/stage/mma-essentials-0209/VC2481_15_67_2011-02-01_0-250nm_Rand7_Typ1.cal")
+ "/home/martin/stage/mma-essentials-0209/VC2481_15_67_2011-02-01_0-250nm_Rand7_Typ1.cal")
 
 #+nil
 (check (set-voltage +volt-frame-f+ 15.0s0))
@@ -50,7 +50,7 @@
 (check (set-voltage +volt-frame-l+ 15.0s0))
 
 
-(defparameter *width* (+ 188s0 10000s0))
+(defparameter *width* (+ 188s0 20000s0))
 
 #+nil
 (set-extern-ready (+ 20s0 0s0)
@@ -63,13 +63,13 @@
 #+nil
 (mma::set-cycle-time (+ .01 (* 2 *width*)))
 #+nil
-(mma::set-cycle-time 33s0)
+(mma::set-cycle-time 41s0)
 
 #+nil
 (mma::enable-extern-start)
 
 #+nil
-(mma:set-nominal-deflection-nm 133s0)
+(mma:set-nominal-deflection-nm 118.25s0)
 
 
 #+nil
@@ -90,24 +90,27 @@
 (set-power-on)
 
 #+nil
-(progn ;; write a picture
- (let* ((n 256)
-	(nh (floor n 2))
-	(buf (make-array (list n n) :element-type '(unsigned-byte 16)
-			 :initial-element 0))
-	(buf1 (sb-ext:array-storage-vector buf)))
-   (dotimes (i n)
-     (dotimes (j n)
-       (let* ((x (* (- i nh) (/ 2s0 n)))
-	      (y (* (- j nh) (/ 2s0 n)))
-	      (r (sqrt (+ (* x x) (* y y)))))
-	 (setf (aref buf j i)
-	      (if (< r .3)
-		  4095
-		  0)))))
-   (sb-sys:with-pinned-objects (buf)
-     (write-matrix-data 1 3 (sb-sys:vector-sap buf1) 
-			(* n n)))))
+(progn ; dotimes (i 100)
+  (let ((rr .3)) ; loop for rr in '(.1 .2 .3 .4 .5 .6 .7 .8 .9 1.0 1.1 1.2) do
+      (sleep .1)
+      (progn ;; write a picture
+	(let* ((n 256)
+	       (nh (floor n 2))
+	       (buf (make-array (list n n) :element-type '(unsigned-byte 16)
+				:initial-element 0))
+	       (buf1 (sb-ext:array-storage-vector buf)))
+	  (dotimes (i n)
+	    (dotimes (j n)
+	      (let* ((x (* (- i nh) (/ 2s0 n)))
+		     (y (* (- j nh) (/ 2s0 n)))
+		     (r (sqrt (+ (* x x) (* y y)))))
+		(setf (aref buf j i)
+		      (if (< r rr)
+			  4095
+			  0)))))
+	  (sb-sys:with-pinned-objects (buf)
+	    (write-matrix-data 1 3 (sb-sys:vector-sap buf1) 
+			       (* n n)))))))
 #+nil
 (mma::set-picture-sequence 1 1 1)
 
