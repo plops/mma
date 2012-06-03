@@ -1,14 +1,16 @@
 (in-package :otf)
  
 (declaim (optimize (debug 2) (safety 2) (speed 3)))
- 
+
+;; 2002 schoenle Calculation of vectorial three-dimensional transfer
+;; functions in large-angle fsocusing system
 (defun i0 (k vartheta &key (alpha .9s0) (epsabs .01) (epsrel .0001))
   (declare (single-float k)
 	   ((single-float -6s0 6s0) vartheta alpha)
 	   (values single-float &optional))
   (let ((pi-s #.(coerce pi 'single-float)))
     (unless (<= 0 vartheta pi-s)
-     (return-from i0 0s0))
+      (return-from i0 0s0))
     (let* ((cv (cos vartheta))
 	   (sv (sin vartheta))
 	   (ca (cos alpha))
